@@ -27,6 +27,8 @@ import com.amazonaws.services.logs.subscriptions.CloudWatchLogsEvent;
 import com.amazonaws.services.logs.subscriptions.CloudWatchLogsSubscriptionTransformer;
 import com.amazonaws.util.json.JSONException;
 
+import static com.amazonaws.services.logs.connectors.elasticsearch.MapperLogGroupSanitizer.sanitizeMapperLogGroupName;
+
 /**
  * Transforms CloudWatchLogsEvent records to ElasticsearchObject records.
  */
@@ -49,7 +51,7 @@ public class ElasticsearchTransformer extends CloudWatchLogsSubscriptionTransfor
             // daily indexes are used for bulk expiry
             String index = INDEX_NAME_PREFIX + DAY_SUFFIX_FORMATTER.print(document.getTimestamp());
 
-            String type = document.getLogGroup();
+            String type = sanitizeMapperLogGroupName(document.getLogGroup());
             String id = document.getId();
 
             // this is the structured log event in JSON format

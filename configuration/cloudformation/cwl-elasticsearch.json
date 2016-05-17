@@ -72,6 +72,10 @@
       "Description": "The ID of the VPC we're launching into",
       "Type": "AWS::EC2::VPC::Id"
     },
+    "AMIID": {
+      "Description": "Which AMIID to use",
+      "Type": "AWS::EC2::Image::Id"
+    },
     "Subnet": {
       "Description": "The Public Subnet Availability Zone A subnet ID for the ELB",
       "Type": "AWS::EC2::Subnet::Id"
@@ -155,10 +159,20 @@
       "Description": "The S3 bucket for source binaries and packages",
       "Type": "String"
     },
+    "S3DownloadPath": {
+      "Description": "The path where we store all binaries under S3bucketSource",
+      "Type": "String",
+      "Default": "CWL-consumer"
+    },
+    "CloudWatchConsumerCompiledZip": {
+      "Description": "The zip file built using maven, which contains jars and configs. Do not include '-cfn.zip' here. The real file should end with -cfn.zip",
+      "Type": "String",
+      "Default": "cloudwatch-logs-subscription-consumer-1.2.0"
+    },
     "Kibana4Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
       "Type": "String",
-      "Default": "kibana-4.1.1-linux-x64"
+      "Default": "kibana-4.1.6-linux-x64"
     },
     "Kibana3Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .zip",
@@ -273,20 +287,8 @@
       "hs1.8xlarge" : { "Arch" : "HVM64"  },
       "cr1.8xlarge" : { "Arch" : "HVM64"  },
       "cc2.8xlarge" : { "Arch" : "HVM64"  }
-    },
-
-    "AWSRegionArch2AMI" : {
-      "us-east-1"        : {"PV64" : "ami-1ccae774", "HVM64" : "ami-1ecae776", "HVMG2" : "ami-8c6b40e4"},
-      "us-west-2"        : {"PV64" : "ami-ff527ecf", "HVM64" : "ami-e7527ed7", "HVMG2" : "ami-abbe919b"},
-      "us-west-1"        : {"PV64" : "ami-d514f291", "HVM64" : "ami-d114f295", "HVMG2" : "ami-f31ffeb7"},
-      "eu-west-1"        : {"PV64" : "ami-bf0897c8", "HVM64" : "ami-a10897d6", "HVMG2" : "ami-d5bc24a2"},
-      "eu-central-1"     : {"PV64" : "ami-ac221fb1", "HVM64" : "ami-a8221fb5", "HVMG2" : "ami-7cd2ef61"},
-      "ap-northeast-1"   : {"PV64" : "ami-27f90e27", "HVM64" : "ami-cbf90ecb", "HVMG2" : "ami-6318e863"},
-      "ap-southeast-1"   : {"PV64" : "ami-acd9e8fe", "HVM64" : "ami-68d8e93a", "HVMG2" : "ami-3807376a"},
-      "ap-southeast-2"   : {"PV64" : "ami-ff9cecc5", "HVM64" : "ami-fd9cecc7", "HVMG2" : "ami-89790ab3"},
-      "sa-east-1"        : {"PV64" : "ami-bb2890a6", "HVM64" : "ami-b52890a8", "HVMG2" : "NOT_SUPPORTED"},
-      "cn-north-1"       : {"PV64" : "ami-fa39abc3", "HVM64" : "ami-f239abcb", "HVMG2" : "NOT_SUPPORTED"}
     }
+
   },
   
   "Conditions" : {
@@ -604,12 +606,12 @@
             "commands" : {
               "00_copyNginxConfig": {
                 "command": { "Fn::Join" : ["", [
-                  "cp ./", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"/configuration/nginx/nginx.conf /etc/nginx/nginx.conf"
+                  "cp ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/nginx/nginx.conf /etc/nginx/nginx.conf"
                  ]]}
               },
               "01_copyElasticsearchTemplates": {
                 "command": { "Fn::Join" : ["", [
-                  "cp -R ./", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"/configuration/elasticsearch/* /etc/elasticsearch/"
+                  "cp -R ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/elasticsearch/* /etc/elasticsearch/"
                 ]]}
               },
               "02_updateESConfigForNode": {
@@ -630,7 +632,7 @@
                 "command": { "Fn::Join" : ["", [
                   "/usr/share/elasticsearch/bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.6.0",
                   "&&",
-                  "/usr/share/elasticsearch/bin/plugin -install lmenezes/elasticsearch-kopf/1.5.5"
+                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf"
                 ]]}
               },
               "04_nginxAuthConfig": {
@@ -647,19 +649,18 @@
                     " -DappName=", { "Ref": "KCLLeasesTable" },
                     " -Dlog4j.configuration=log4j-prod.properties",
                     " -DelasticsearchClusterName=elasticsearch",
-                    " -cp ", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,".jar",
+                    " -cp ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,".jar",
                     " com.amazonaws.services.logs.connectors.samples.elasticsearch.ElasticsearchConnector",
                     " > /dev/null 2>&1 & } && disown -h %1"
                   ]]},
                 "cwd": "~"
               },
               "06_startKibana4": {
-                "command": "{ nohup ./kibana-4.1.1-linux-x64/bin/kibana > /dev/null 2>&1 & } && disown -h %1",
+                "command": { "Fn::Join" : ["", [ "{ nohup ./",{ "Ref" :"Kibana4Filename"},"/bin/kibana > /dev/null 2>&1 & } && disown -h %1"]]},
                 "cwd": "~"
               },
               "07_getPipAndCurator": {
-                "command": "python get-pip.py && /usr/local/bin/pip install elasticsearch-curator",
-                "cwd": "/pipstuff"
+                "command": "pip install elasticsearch-curator"
               },
               "08_CWLStateDir" : {
                 "command" : "mkdir -p /var/awslogs/state"
@@ -694,19 +695,6 @@
                   "}\n"
                 ]]}
               },
-              "/etc/logrotate.d/nginx": {
-                   "content": { "Fn::Join" : ["", [
-                  "/var/log/nginx/access.log\n",
-                  "/var/log/nginx/error.log\n",
-                  "{\n",
-                  "    daily\n",
-                  "    rotate 5\n",
-                  "    copytruncate\n",
-                  "    dateext\n",
-                  "    compress\n",
-                  "}\n"
-                ]]}
-              },
               "/etc/logrotate.d/cloudwatch-logs-subscription-consumer": {
                    "content": { "Fn::Join" : ["", [
                   "/var/log/cloudwatch-logs-subscription-consumer.log\n",
@@ -718,60 +706,7 @@
                   "    compress\n",
                   "}\n"
                 ]]}
-              },
-              "/etc/awslogs/awscli.conf": {
-                   "content": { "Fn::Join" : ["", [
-                  "[plugins]\n",
-                  "cwlogs = cwlogs\n",
-                  "[default]\n",
-                  "region = ", { "Ref": "AWS::Region"} ,"\n"
-                ]]}
-              },
-              "/pipstuff/get-pip.py": {
-                "source": "https://bootstrap.pypa.io/get-pip.py"
-              },
-              "/etc/awslogs/awslogs.conf": {
-                "Fn::If": [
-                  "CreateCWLForStack",
-                  {
-                    "content": { "Fn::Join": [ "", [
-                       "[general]\n",
-                       "state_file= /var/awslogs/state/agent-state\n",
-
-                      "[/var/log/cfn-init.log]\n",
-                      "file = /var/log/cfn-init.log\n",
-                      "log_group_name = ELK\n",
-                      "log_stream_name = {instance_id}\n",
-
-                      "[/var/log/elasticsearch/elasticsearch.log]\n",
-                      "file = /var/log/elasticsearch/elasticsearch.log\n",
-                      "log_group_name = ELK\n",
-                      "log_stream_name = {instance_id}\n",
-
-                      "[/var/log/nginx/access.log]\n",
-                      "file = /var/log/nginx/access.log\n",
-                      "log_group_name = ELK\n",
-                      "log_stream_name = {instance_id}\n",
-
-                      "[/var/log/nginx/error.log]\n",
-                      "file = /var/log/nginx/error.log\n",
-                      "log_group_name = ELK\n",
-                      "log_stream_name = {instance_id}\n",
-
-                      "[/var/log/cloudwatch-logs-subscription-consumer.log]\n",
-                      "file = /var/log/cloudwatch-logs-subscription-consumer.log\n",
-                      "log_group_name = ELK\n",
-                      "log_stream_name = {instance_id}\n"
-                   ]]},
-                   "mode": "000444",
-                   "owner": "root",
-                   "group": "root"
-                   },
-                 {
-                   "content": "# Find original defaults in .bak file"
-                 }
-                ]
-              } 
+              }
             },
 
             "services": {
@@ -806,7 +741,7 @@
       },
 
       "Properties": {
-        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" }, { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
+        "ImageId" : { "Ref" : "AMIID" },
         "InstanceType"   : { "Ref" : "InstanceType" },
         "SecurityGroups" : [ {"Ref" : "ElasticsearchSecurityGroup"} ],
         "KeyName"        : { "Ref" : "KeyName" },
@@ -833,28 +768,33 @@
                 "   source /etc/profile.d/proxy.sh\n",
                 "   /bin/cp -fr /etc/profile.d/proxy.sh /var/awslogs/etc/proxy.conf\n",
                 "fi\n",
-          "yum update -y aws-cfn-bootstrap\n",
-          "yum update -y aws-cli\n",
-
+          "#Install few required yums\n",
+          "until yum install -y nginx httpd python-pip java; do sleep 10; done\n",
+          "\n",
+          "\n",
+          "\n",
           "# Helper function\n",
           "#function error_exit\n",
           "#{\n",
-          "#  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+          "#  cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
           "#  exit 1\n",
           "#}\n",
 
           "cd ~\n",
+          "#Get elasticsearch RPM\n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
+          "yum install -y ",{ "Ref" :"ElasticSearchFilename"} ,".rpm\n",
 
           "# KCL and config files\n",
-          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"-cfn.zip .\n",
-          "unzip ", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"-cfn.zip\n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip .\n",
+          "unzip ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip\n",
 
           "# Get Kibana 4\n",
-          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/",{"Ref": "Kibana4Filename"},".tar.gz\n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana4Filename"},".tar.gz .\n",
           "tar -xf ",{"Ref": "Kibana4Filename"},".tar.gz\n",
 
           "# Config\n",
-          "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
+          "cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
           "    --region ", { "Ref" : "AWS::Region" }, " -v\n",
 
           "# Allow 60% of total mem as heap size for cluster \n",
@@ -862,14 +802,14 @@
           " && sed -i \"s/#ES_HEAP_SIZE=.*/ES_HEAP_SIZE=$(echo $freemem)m/g\" /etc/sysconfig/elasticsearch\n",
 
           "# Get Kibana 3\n",
-          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/",{"Ref": "Kibana3Filename"},".zip\n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana3Filename"},".zip .\n",
           "unzip ",{"Ref": "Kibana3Filename"},".zip\n",
           "mkdir -p /usr/share/nginx/html/kibana3\n",
           "mv ",{"Ref": "Kibana3Filename"},"/* /usr/share/nginx/html/kibana3\n",
           "sed -i 's/elasticsearch:.*/elasticsearch: \"http:\\/\\/\" + window.location.hostname,/g' /usr/share/nginx/html/kibana3/config.js || error_exit \"Failed to update Kibana 3 config\"\n",
 
           "# Add static Kibana 3 dashboards\n",
-          "cp -f ", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"/configuration/kibana/* /usr/share/nginx/html/kibana3/app/dashboards/ || error_exit \"Failed to copy the Kibana 3 static dashboards\" \n",
+          "cp -f ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/kibana/* /usr/share/nginx/html/kibana3/app/dashboards/ || error_exit \"Failed to copy the Kibana 3 static dashboards\" \n",
 
           "# Update Elasticsearch index templates\n",
           "sed -i '5i\\ \\ \\ \\ \\ \\ \"index.number_of_replicas\" : ", { "Ref": "ElasticsearchReplicas" } ,",' /etc/elasticsearch/templates/cwl_template.json || error_exit \"Failed update cwl_template.json\"\n",
@@ -885,7 +825,7 @@
           "crontab mycron && rm -f mycron || error_exit \"Failed to set cron \" \n",
 
           "# Signal success\n",
-          "/opt/aws/bin/cfn-signal -e $? '", { "Ref" : "WaitHandle" }, "'\n",
+          "cfn-signal -e $? '", { "Ref" : "WaitHandle" }, "'\n",
           "# Try to register CloudWatch subscription filters\n",
           "cat > /etc/subscribefilters.sh << 'EOF'\n",
           "#!/bin/bash -ex\n",
@@ -902,6 +842,35 @@
           "#done\n",
           "EOF\n",
           "\n",
+          "#Add selinux modules\n",
+          "setenforce 0\n",
+          "#curl -L -v -u ",{"Ref":"NginxUsername"},":",{"Ref":"NginxPassword"}," http://127.0.0.1:8080/kibana4/\n",
+          "#curl -L -v -u ",{"Ref":"NginxUsername"},":",{"Ref":"NginxPassword"}," http://127.0.0.1:8080/kibana3/\n",
+          "#sleep 2\n",
+          "#grep nginx /var/log/audit/audit.log | audit2allow -M nginx && semodule -i nginx.pp\n",
+          "\n",
+          "cat << EOF >> /var/awslogs/etc/awslogs.conf\n",
+          "\n",
+          "[/var/log/elasticsearch/elasticsearch.log]\n",
+          "file = /var/log/elasticsearch/elasticsearch.log\n",
+          "log_group_name = ELK\n",
+          "log_stream_name = {instance_id}\n",
+          "\n",
+          "[/var/log/nginx/access.log]\n",
+          "file = /var/log/nginx/access.log\n",
+          "log_group_name = ELK\n",
+          "log_stream_name = {instance_id}\n",
+          "\n",
+          "[/var/log/nginx/error.log]\n",
+          "file = /var/log/nginx/error.log\n",
+          "log_group_name = ELK\n",
+          "log_stream_name = {instance_id}\n",
+          "\n",
+          "[/var/log/cloudwatch-logs-subscription-consumer.log]\n",
+          "file = /var/log/cloudwatch-logs-subscription-consumer.log\n",
+          "log_group_name = ELK\n",
+          "log_stream_name = {instance_id}\n",
+          "EOF\n",
           "bash -x /etc/subscribefilters.sh\n",
           "\n"
         ]]}}

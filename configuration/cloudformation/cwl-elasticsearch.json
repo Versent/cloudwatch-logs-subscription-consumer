@@ -849,6 +849,7 @@
           "#sleep 2\n",
           "#grep nginx /var/log/audit/audit.log | audit2allow -M nginx && semodule -i nginx.pp\n",
           "\n",
+          "sed -i 's/ENV/",{"Ref": "TagEnvironment"},"/' /var/awslogs/etc/awslogs.conf",
           "cat << EOF >> /var/awslogs/etc/awslogs.conf\n",
           "\n",
           "[/var/log/elasticsearch/elasticsearch.log]\n",
@@ -871,7 +872,9 @@
           "log_group_name = ELK\n",
           "log_stream_name = {instance_id}\n",
           "EOF\n",
-          "bash -x /etc/subscribefilters.sh\n",
+          "/etc/init.d/awslogs restart\n",
+          "#\n",
+          "#bash -x /etc/subscribefilters.sh\n",
           "\n"
         ]]}}
       }

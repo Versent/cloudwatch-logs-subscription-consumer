@@ -156,19 +156,19 @@
       "Type": "String"
     },
     "Kibana4Filename": {
-      "Description": "The Kibana4 archive filename in S3 the bucket",
+      "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
       "Type": "String",
-      "Default": "kibana-4.1.1-linux-x64.tar.gz"
+      "Default": "kibana-4.1.1-linux-x64"
     },
     "Kibana3Filename": {
-      "Description": "The Kibana4 archive filename in S3 the bucket",
+      "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .zip",
       "Type": "String",
-      "Default": "kibana-3.1.2.zip"
+      "Default": "kibana-3.1.2"
     },
     "ElasticSearchFilename": {
-      "Description": "The ElasticSearch rpm filename in S3",
+      "Description": "The ElasticSearch rpm filename in S3. No extention pleaase. The real file ends with .rpm ",
       "Type": "String",
-      "Default": "elasticsearch-1.6.0.noarch.rpm"
+      "Default": "elasticsearch-1.6.0.noarch"
     },
 
     "RetentionDays" : {
@@ -837,36 +837,35 @@
           "yum update -y aws-cli\n",
 
           "# Helper function\n",
-          "function error_exit\n",
-          "{\n",
-          "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
-          "  exit 1\n",
-          "}\n",
+          "#function error_exit\n",
+          "#{\n",
+          "#  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+          "#  exit 1\n",
+          "#}\n",
 
           "cd ~\n",
 
           "# KCL and config files\n",
-          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"-cfn.zip . || error_exit \"Failed to get cf package\" \n",
-          "unzip ", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"-cfn.zip || error_exit \"Failed to unzip cf package\" \n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"-cfn.zip .\n",
+          "unzip ", { "Fn::FindInMap" : [ "Constants", "S3DownloadFile", "Value" ]} ,"-cfn.zip\n",
 
           "# Get Kibana 4\n",
-          "wget https://download.elastic.co/kibana/kibana/kibana-4.1.1-linux-x64.tar.gz || error_exit \"Failed to download Kibana 4\" \n",
-          "tar -xf kibana-4.1.1-linux-x64.tar.gz || error_exit \"Kibana 4 untar failed\" \n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/",{"Ref": "Kibana4Filename"},".tar.gz\n",
+          "tar -xf ",{"Ref": "Kibana4Filename"},".tar.gz\n",
 
           "# Config\n",
           "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
-          "    --region ", { "Ref" : "AWS::Region" }, " -v || error_exit \"failed to run cfn-init\"\n",
+          "    --region ", { "Ref" : "AWS::Region" }, " -v\n",
 
           "# Allow 60% of total mem as heap size for cluster \n",
           "freemem=$(free -m | grep Mem | awk '{ printf \"%1.0f\\n\", 0.6*$2; }')",
-          " && sed -i \"s/#ES_HEAP_SIZE=.*/ES_HEAP_SIZE=$(echo $freemem)m/g\" /etc/sysconfig/elasticsearch",
-          " || error_exit \"Failed to change heap size for es \" \n",
+          " && sed -i \"s/#ES_HEAP_SIZE=.*/ES_HEAP_SIZE=$(echo $freemem)m/g\" /etc/sysconfig/elasticsearch\n",
 
           "# Get Kibana 3\n",
-          "wget https://download.elasticsearch.org/kibana/kibana/kibana-3.1.2.zip || error_exit \"Failed to download Kibana 3\" \n",
-          "unzip kibana-3.1.2.zip || error_exit \"Kibana 3 unzip failed\" \n",
-          "mkdir -p /usr/share/nginx/html/kibana3 || error_exit \"Failed to create Kibana 3 directory\" \n",
-          "mv kibana-3.1.2/* /usr/share/nginx/html/kibana3 || error_exit \"Failed to move Kibana 3 assets\" \n",
+          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Fn::FindInMap" : [ "Constants", "S3DownloadPath", "Value" ]} ,"/",{"Ref": "Kibana3Filename"},".zip\n",
+          "unzip ",{"Ref": "Kibana3Filename"},".zip\n",
+          "mkdir -p /usr/share/nginx/html/kibana3\n",
+          "mv ",{"Ref": "Kibana3Filename"},"/* /usr/share/nginx/html/kibana3\n",
           "sed -i 's/elasticsearch:.*/elasticsearch: \"http:\\/\\/\" + window.location.hostname,/g' /usr/share/nginx/html/kibana3/config.js || error_exit \"Failed to update Kibana 3 config\"\n",
 
           "# Add static Kibana 3 dashboards\n",

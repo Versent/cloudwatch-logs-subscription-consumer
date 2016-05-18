@@ -76,6 +76,10 @@
       "Description": "Which AMIID to use",
       "Type": "AWS::EC2::Image::Id"
     },
+    "NATSecurityGroup": {
+      "Description": "A security group, which has granted NAT outbound access to 443",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
     "Subnet": {
       "Description": "The Public Subnet Availability Zone A subnet ID for the ELB",
       "Type": "AWS::EC2::Subnet::Id"
@@ -553,6 +557,7 @@
       "Properties" : {
         "Subnets" : [{ "Ref" : "Subnet" }],
         "CrossZone" : "true",
+        "Scheme": "internal",
         "SecurityGroups": [ { "Fn::GetAtt" : [ "ElasticsearchELBSecurityGroup", "GroupId" ] } ],
         "Listeners" : [ {
           "LoadBalancerPort" : "80",
@@ -743,7 +748,7 @@
       "Properties": {
         "ImageId" : { "Ref" : "AMIID" },
         "InstanceType"   : { "Ref" : "InstanceType" },
-        "SecurityGroups" : [ {"Ref" : "ElasticsearchSecurityGroup"} ],
+        "SecurityGroups" : [ {"Ref" : "ElasticsearchSecurityGroup"}, {"Ref": "NATSecurityGroup"} ],
         "KeyName"        : { "Ref" : "KeyName" },
         "IamInstanceProfile" : { "Ref" : "ElasticsearchInstanceProfile" },
         "AssociatePublicIpAddress" : true,
@@ -762,6 +767,7 @@
                 "export no_proxy=\"169.254.169.254,localhost,127.0.0.1,.",{ "Ref": "S3bucketSource" },",s3-$REGION.amazonaws.com\"\n",
                 "export HTTP_PROXY=http://$httpproxyhost:$httpproxyport\n",
                 "export HTTPS_PROXY=https://$httpproxyhost:$httpproxyport\n",
+                "export JAVA_OPTS=\"-DproxyHost=$httpproxyhost -DproxyPort=$httpproxyport\"\n",
                 "export NO_PROXY=\"169.254.169.254,localhost,127.0.0.1,.",{ "Ref": "S3bucketSource" },",s3-$REGION.amazonaws.com\"\n",
                 "EOF\n",
                 "   chmod 755 /etc/profile.d/proxy.sh\n",
@@ -773,13 +779,6 @@
           "\n",
           "\n",
           "\n",
-          "# Helper function\n",
-          "#function error_exit\n",
-          "#{\n",
-          "#  cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
-          "#  exit 1\n",
-          "#}\n",
-
           "cd ~\n",
           "#Get elasticsearch RPM\n",
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
@@ -824,8 +823,6 @@
 
           "crontab mycron && rm -f mycron || error_exit \"Failed to set cron \" \n",
 
-          "# Signal success\n",
-          "cfn-signal -e $? '", { "Ref" : "WaitHandle" }, "'\n",
           "# Try to register CloudWatch subscription filters\n",
           "cat > /etc/subscribefilters.sh << 'EOF'\n",
           "#!/bin/bash -ex\n",
@@ -880,18 +877,6 @@
       }
     },
 
-    "WaitHandle" : {
-      "Type" : "AWS::CloudFormation::WaitConditionHandle"
-    },
-
-    "WaitCondition" : {
-      "Type" : "AWS::CloudFormation::WaitCondition",
-      "DependsOn" : "ElasticsearchServer",
-      "Properties" : {
-        "Handle" : {"Ref" : "WaitHandle"},
-        "Timeout" : "600"
-      }
-    },
     "ELBRoute53Record": {
       "Type": "AWS::Route53::RecordSet",
       "Properties": {

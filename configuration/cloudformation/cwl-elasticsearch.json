@@ -849,7 +849,7 @@
           "#sleep 2\n",
           "#grep nginx /var/log/audit/audit.log | audit2allow -M nginx && semodule -i nginx.pp\n",
           "\n",
-          "sed -i 's/ENV/",{"Ref": "TagEnvironment"},"/' /var/awslogs/etc/awslogs.conf",
+          "sed -i 's/ENV/",{"Ref": "TagEnvironment"},"/' /var/awslogs/etc/awslogs.conf\n",
           "cat << EOF >> /var/awslogs/etc/awslogs.conf\n",
           "\n",
           "[/var/log/elasticsearch/elasticsearch.log]\n",

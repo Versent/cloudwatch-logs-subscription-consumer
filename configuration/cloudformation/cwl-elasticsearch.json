@@ -84,8 +84,12 @@
       "Description": "The AWS accountID we want to allow to subscribe to the kinesis stream",
       "Type": "String"
     },
-    "Subnet": {
-      "Description": "The Public Subnet Availability Zone A subnet ID for the ELB",
+    "SubnetA": {
+      "Description": "The Private Subnet Availability Zone A subnet ID for the ELB",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "SubnetB": {
+      "Description": "The Private Subnet Availability Zone B subnet ID for the ELB",
       "Type": "AWS::EC2::Subnet::Id"
     },
     "TagOwner": {
@@ -191,6 +195,11 @@
       "Description": "The ElasticSearch rpm filename in S3. No extention pleaase. The real file ends with .rpm ",
       "Type": "String",
       "Default": "elasticsearch-1.7.3.noarch"
+    },
+    "AWSCloudPluginVersion": {
+      "Description": "The ElasticSearch plugin aws-cloud need to match es version. For example, for es 1.7.x, plugin version is 2.7.1",
+      "Type": "String",
+      "Default": "2.7.1"
     },
 
     "RetentionDays" : {
@@ -525,7 +534,7 @@
     "ElasticsearchServerGroup" : {
       "Type" : "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
-        "VPCZoneIdentifier" : [{ "Ref" : "Subnet" }],
+        "VPCZoneIdentifier" : [{ "Ref" : "SubnetA" }, { "Ref" : "SubnetB" }],
         "LaunchConfigurationName" : { "Ref" : "ElasticsearchServer" },
         "LoadBalancerNames": [  { "Ref": "ElasticsearchELB" } ],
         "MinSize" : "1",
@@ -560,6 +569,10 @@
               ]
             },
             "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "type",
+            "Value": "elasticsearch"
           }
         ]
       }
@@ -648,8 +661,8 @@
               },
               "03_installESPlugins": {
                 "command": { "Fn::Join" : ["", [
-                  "/usr/share/elasticsearch/bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.6.0",
-                  "&&",
+                  "/usr/share/elasticsearch/bin/plugin -install elasticsearch/elasticsearch-cloud-aws/", { "Ref": "AWSCloudPluginVersion" } ,
+                  " && ",
                   "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf/1.0"
                 ]]}
               },

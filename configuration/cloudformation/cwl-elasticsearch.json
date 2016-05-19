@@ -581,7 +581,7 @@
     "ElasticsearchELB" : {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties" : {
-        "Subnets" : [{ "Ref" : "Subnet" }],
+        "Subnets" : [{ "Ref" : "SubnetA" }, { "Ref" : "SubnetB" }],
         "CrossZone" : "true",
         "Scheme": "internal",
         "SecurityGroups": [ { "Fn::GetAtt" : [ "ElasticsearchELBSecurityGroup", "GroupId" ] } ],

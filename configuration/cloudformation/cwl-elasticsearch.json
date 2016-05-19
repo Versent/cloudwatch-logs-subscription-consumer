@@ -190,7 +190,7 @@
     "ElasticSearchFilename": {
       "Description": "The ElasticSearch rpm filename in S3. No extention pleaase. The real file ends with .rpm ",
       "Type": "String",
-      "Default": "elasticsearch-1.6.0.noarch"
+      "Default": "elasticsearch-1.7.3.noarch"
     },
 
     "RetentionDays" : {
@@ -650,7 +650,7 @@
                 "command": { "Fn::Join" : ["", [
                   "/usr/share/elasticsearch/bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.6.0",
                   "&&",
-                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf"
+                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf/1.0"
                 ]]}
               },
               "04_nginxAuthConfig": {

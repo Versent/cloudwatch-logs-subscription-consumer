@@ -80,6 +80,10 @@
       "Description": "A security group, which has granted NAT outbound access to 443",
       "Type": "AWS::EC2::SecurityGroup::Id"
     },
+    "CrossAccountID": {
+      "Description": "The AWS accountID we want to allow to subscribe to the kinesis stream",
+      "Type": "String"
+    },
     "Subnet": {
       "Description": "The Public Subnet Availability Zone A subnet ID for the ELB",
       "Type": "AWS::EC2::Subnet::Id"
@@ -346,6 +350,15 @@
           }]
         }
       }  
+    },
+    "CrossLogDestination" : {
+      "Type" : "AWS::Logs::Destination",
+      "Properties" : {
+        "DestinationName": "ELKCrossLogDestination",
+        "RoleArn": { "Fn::GetAtt" : [ "CloudWatchLogsKinesisRole", "Arn" ] },
+        "TargetArn": { "Fn::Join" : [ ":", [ "arn", "aws", "kinesis",{ "Ref" : "AWS::Region" },{ "Ref" : "AWS::AccountId" }, { "Fn::Join" : [ "/", [ "stream", { "Ref": "KinesisSubscriptionStream"} ] ] } ] ] },
+        "DestinationPolicy": { "Fn::Join" : [ "", ["{\"Version\"  : \"2012-10-17\",\"Statement\" : [{\"Effect\" : \"Allow\", \"Principal\" : {\"AWS\": \"", { "Ref" : "CrossAccountID"} ,"\"},\"Action\" : \"logs:PutSubscriptionFilter\", \"Resource\" : \"arn:aws:logs:",{ "Ref" : "AWS::Region" },":",{ "Ref" : "AWS::AccountId" },":destination:ELKCrossLogDestination\"}]}" ]]}
+      }    
     },
 
     "CloudWatchLogsKinesisPolicy": {
@@ -921,6 +934,10 @@
     "RoleARN" : {
       "Description" : "role-arn for the subsctiontion ",
       "Value" :  { "Fn::GetAtt" : [ "CloudWatchLogsKinesisRole", "Arn" ] }
+    },
+    "CrossDestinationARN" : {
+      "Description" : "role-arn for the subsctiontion ",
+      "Value" :  { "Fn::Join" : ["",["arn:aws:logs:",{ "Ref" : "AWS::Region" },":",{ "Ref" : "AWS::AccountId" },":destination:ELKCrossLogDestination"]]}
     }
   }
 }

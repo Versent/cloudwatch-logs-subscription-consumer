@@ -572,7 +572,8 @@
           },
           {
             "Key": "type",
-            "Value": "elasticsearch"
+            "Value": "elasticsearch",
+            "PropagateAtLaunch": "true"
           }
         ]
       }

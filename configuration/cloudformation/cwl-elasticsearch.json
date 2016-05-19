@@ -138,7 +138,7 @@
     "ClusterSize" : {
       "Description" : "The number of Elasticsearch nodes",
       "Type" : "Number",
-      "Default" : "1"
+      "Default" : "2"
     },
     "HttpProxyHost": {
       "Description": "Optional http_proxy host/ip. If set, export http_proxy will appear in userdata",
@@ -245,7 +245,7 @@
     "ElasticsearchReplicas": {
       "Description": "The number of replica shards (copies) that each primary Elasticsearch shard should have",
       "Type": "Number",
-      "Default" : "0",
+      "Default" : "1",
       "MinValue" : "0"
     }
   },

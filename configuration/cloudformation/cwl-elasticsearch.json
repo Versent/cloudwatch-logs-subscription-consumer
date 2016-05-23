@@ -713,6 +713,20 @@
                   "cloud.node.auto_attributes: true\n"
                 ]]}
               },
+              "/etc/elasticsearch/startLogConsumer.sh": {
+                "content": { "Fn::Join" : ["", [
+                  "#!/bin/bash -x\n\n",
+                  "cd /root/",
+                  "{ nohup java -DkinesisInputStream=", { "Ref": "KinesisSubscriptionStream" },
+                    " -DregionName=", { "Ref": "AWS::Region" },
+                    " -DappName=", { "Ref": "KCLLeasesTable" },
+                    " -Dlog4j.configuration=log4j-prod.properties",
+                    " -DelasticsearchClusterName=elasticsearch",
+                    " -cp ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,".jar",
+                    " com.amazonaws.services.logs.connectors.samples.elasticsearch.ElasticsearchConnector",
+                    " > /dev/null 2>&1 & } && disown -h %1"
+                  ]]}
+              },
               "/etc/logrotate.d/elasticsearch": {
                    "content": { "Fn::Join" : ["", [
                   "/var/log/elasticsearch/elasticsearch_index_indexing_slowlog.log\n",

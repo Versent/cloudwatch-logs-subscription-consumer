@@ -98,9 +98,14 @@
       "Default": "its@versent.com.au"
     },
     "TagEnvironment": {
-      "Description": "Name of the overall Service",
+      "Description": "Name of the environment(dev, nonprod, prod, etc",
       "Type": "String",
       "Default": "dev"
+    },
+    "TagEnvironmentNumber": {
+      "Description": "environment number",
+      "Type": "String",
+      "Default": "1"
     },
     "TagService": {
       "Description": "Name of the overall Service",
@@ -121,6 +126,10 @@
       "Description": "This defines the role ",
       "Type": "String",
       "Default": "elk"
+    },
+    "ELBSSLCertificate": {
+      "Description": "SSL Certificate for the Elastic Load Balancer.",
+      "Type": "String"
     },
     "BuildId": {
       "Description": "An integer representing an incremental build number",
@@ -369,16 +378,16 @@
             "Action": "sts:AssumeRole"
           }]
         }
-      }  
+      }
     },
     "CrossLogDestination" : {
       "Type" : "AWS::Logs::Destination",
       "Properties" : {
-        "DestinationName": "ELKCrossLogDestination",
+        "DestinationName": { "Fn::Join" : [ "-", ["ELKCrossLogDestination",{"Ref": "BuildId"}]]},
         "RoleArn": { "Fn::GetAtt" : [ "CloudWatchLogsKinesisRole", "Arn" ] },
         "TargetArn": { "Fn::Join" : [ ":", [ "arn", "aws", "kinesis",{ "Ref" : "AWS::Region" },{ "Ref" : "AWS::AccountId" }, { "Fn::Join" : [ "/", [ "stream", { "Ref": "KinesisSubscriptionStream"} ] ] } ] ] },
-        "DestinationPolicy": { "Fn::Join" : [ "", ["{\"Version\"  : \"2012-10-17\",\"Statement\" : [{\"Effect\" : \"Allow\", \"Principal\" : {\"AWS\": \"", { "Ref" : "CrossAccountID"} ,"\"},\"Action\" : \"logs:PutSubscriptionFilter\", \"Resource\" : \"arn:aws:logs:",{ "Ref" : "AWS::Region" },":",{ "Ref" : "AWS::AccountId" },":destination:ELKCrossLogDestination\"}]}" ]]}
-      }    
+        "DestinationPolicy": { "Fn::Join" : [ "", ["{\"Version\"  : \"2012-10-17\",\"Statement\" : [{\"Effect\" : \"Allow\", \"Principal\" : {\"AWS\": \"", { "Ref" : "CrossAccountID"} ,"\"},\"Action\" : \"logs:PutSubscriptionFilter\", \"Resource\" : \"arn:aws:logs:",{ "Ref" : "AWS::Region" },":",{ "Ref" : "AWS::AccountId" },":destination:ELKCrossLogDestination-",{"Ref": "BuildId"},"\"}]}" ]]}
+      }
     },
 
     "CloudWatchLogsKinesisPolicy": {
@@ -511,6 +520,24 @@
             "ToPort" : "22", 
             "CidrIp" : { "Ref" : "AllowedIpSource" }
           }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {"Ref": "TagService" },
+                  {"Ref": "TagApplication" },
+                  {"Ref": "TagEnvironment" },
+                  {"Ref": "TagEnvironmentNumber" },
+                  "essg",
+                  {"Ref": "BuildId" }
+                ]
+              ]
+            }
+          }
         ]
       }
     },
@@ -534,9 +561,27 @@
         "SecurityGroupIngress" : [
           {
             "IpProtocol" : "tcp", 
-            "FromPort" : "80", 
-            "ToPort" : "80",
+            "FromPort" : "443", 
+            "ToPort" : "443",
             "CidrIp" : { "Ref" : "AllowedIpSource" }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {"Ref": "TagService" },
+                  {"Ref": "TagApplication" },
+                  {"Ref": "TagEnvironment" },
+                  {"Ref": "TagEnvironmentNumber" },
+                  "ELB",
+                  {"Ref": "BuildId" }
+                ]
+              ]
+            }
           }
         ]
       }
@@ -598,9 +643,12 @@
         "Scheme": "internal",
         "SecurityGroups": [ { "Fn::GetAtt" : [ "ElasticsearchELBSecurityGroup", "GroupId" ] } ],
         "Listeners" : [ {
-          "LoadBalancerPort" : "80",
+          "LoadBalancerPort" : "443",
           "InstancePort" : "8080",
-          "Protocol" : "HTTP"
+          "Protocol" : "HTTPS",
+          "SSLCertificateId": {
+              "Ref": "ELBSSLCertificate"
+            }
         } ],
         "HealthCheck" : {
           "Target" : "TCP:8080",
@@ -1000,7 +1048,7 @@
     },
     "CrossDestinationARN" : {
       "Description" : "role-arn for the subsctiontion ",
-      "Value" :  { "Fn::Join" : ["",["arn:aws:logs:",{ "Ref" : "AWS::Region" },":",{ "Ref" : "AWS::AccountId" },":destination:ELKCrossLogDestination"]]}
+      "Value" :  { "Fn::Join" : ["",["arn:aws:logs:",{ "Ref" : "AWS::Region" },":",{ "Ref" : "AWS::AccountId" },":destination:ELKCrossLogDestination-",{"Ref": "BuildId"}]]}
     }
   }
 }

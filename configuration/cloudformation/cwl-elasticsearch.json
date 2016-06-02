@@ -76,6 +76,10 @@
       "Description": "Which AMIID to use",
       "Type": "AWS::EC2::Image::Id"
     },
+    "DefaultSecurityGroup": {
+      "Description": "A default security group, which grants Mcafee/Transurban access and common bastion services",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
     "NATSecurityGroup": {
       "Description": "A security group, which has granted NAT outbound access to 443",
       "Type": "AWS::EC2::SecurityGroup::Id"
@@ -848,7 +852,11 @@
       "Properties": {
         "ImageId" : { "Ref" : "AMIID" },
         "InstanceType"   : { "Ref" : "InstanceType" },
-        "SecurityGroups" : [ {"Ref" : "ElasticsearchSecurityGroup"}, {"Ref": "NATSecurityGroup"} ],
+        "SecurityGroups" : [
+             {"Ref" : "ElasticsearchSecurityGroup"}, 
+             {"Ref": "NATSecurityGroup"},
+             {"Ref": "DefaultSecurityGroup"}
+        ],
         "KeyName"        : { "Ref" : "KeyName" },
         "IamInstanceProfile" : { "Ref" : "ElasticsearchInstanceProfile" },
         "AssociatePublicIpAddress" : false,
@@ -860,11 +868,13 @@
                 "VolumeSize" : {"Ref":"ESVolumeSize"},
                 "SnapshotId" : {"Ref":"ESVolumeSnapshotId"},
                 "Encrypted" : true,
+                "DeleteOnTermination": false,
                 "VolumeType" : "gp2"
               }, 
               {
                 "VolumeSize" : {"Ref":"ESVolumeSize"},
                 "Encrypted" : true,
+                "DeleteOnTermination": false,
                 "VolumeType" : "gp2"
               }
             ]

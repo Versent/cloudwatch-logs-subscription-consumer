@@ -232,6 +232,12 @@
       "MinValue" : "1"
     },
 
+    "SnapRetentionDays" : {
+      "Description": "Number of days to retain snapshots of data volume",
+      "Type": "Number",
+      "Default" : "14",
+      "MinValue" : "1"
+    },
     "MonitorStack" : {
       "Description": "Push logs from Elasticsearch, Nginx, KCL and CloudFormation to CloudWatch Logs",
       "Type": "String",
@@ -776,6 +782,39 @@
                   "cloud.node.auto_attributes: true\n"
                 ]]}
               },
+              "/etc/elasticsearch/snapshot.sh": {
+                "content": { "Fn::Join" : ["", [
+                  "#!/bin/bash -x\n\n",
+                  "REGION=",{ "Ref" : "AWS::Region" }, "\n",
+                  "datetag=`date -Is`\n",
+                  "nametag=\"$datetag-\"",
+                     {"Ref": "TagService"},"-",
+                     {"Ref": "TagApplication"},"-",
+                     {"Ref": "TagEnvironment"},"-",
+                     {"Ref": "TagEnvironmentNumber"},"-",
+                     {"Ref": "TagRole"},"-",
+                     {"Ref": "BuildId"},"\n",
+                  "instanceid=`curl -s -L http://169.254.169.254/latest/meta-data/instance-id`\n",
+                  "volumeLid=`aws --region=$REGION ec2 describe-volumes --filters Name=attachment.instance-id,Values=$instanceid --query Volumes[].Attachments[].[VolumeId,Device] --output text | grep sdl | awk '{print $1}'`\n",
+                  "snapid=`aws --region=$REGION ec2 create-snapshot --volume-id $volumeLid --description \"ELK volume /dev/sdl InstanceId:$instanceid\" --query SnapshotId --output text`\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Name,Value=$nametag\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=StackName,Value='",{ "Ref" : "AWS::StackName" },"'\n",
+                  "#\n",
+                  "snaplist=`aws ec2 --region=ap-southeast-2 describe-snapshots --filters Name=tag-value,Values=",{ "Ref" : "AWS::StackName" }," --query Snapshots[].[StartTime,SnapshotId] --output text`\n",
+                  "IFS=$'\n'\n",
+                  "olderthandatenum=`date +'%Y%m%d' -d '",{ "Ref" : "SnapRetentionDays" }," days ago'`\n",
+                  "for snap in $snaplist; do\n",
+                  "   snapid=`echo $snap | awk '{print $2}'`\n",
+                  "   snapdate=`echo $snap | awk '{print $1}'`\n",
+                  "   snapdatenum=`date -d \"$snapdate\" +'%Y%m%d'`\n",
+                  "   if (( $snapdatenum < $olderthandatenum )); then\n",
+                  "     echo \"deleting $snapid\" \n",
+                  "     aws --region=$REGION ec2 delete-snapshot --snapshot-id $snapid \n",
+                  "   fi\n",
+                  "done\n"
+                  ]]},
+                  "mode"  : "000755"
+              },
               "/etc/elasticsearch/startLogConsumer.sh": {
                 "content": { "Fn::Join" : ["", [
                   "#!/bin/bash -x\n\n",
@@ -957,6 +996,9 @@
 
           "crontab mycron && rm -f mycron || error_exit \"Failed to set cron \" \n",
 
+          "# Set cron for Snapshots\n",
+          "crontab -l > snapcron\n",
+          "echo \"0 1 * * * /etc/elasticsearch/snapshot.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
           "# Try to register CloudWatch subscription filters\n",
           "cat > /etc/subscribefilters.sh << 'EOF'\n",
           "#!/bin/bash -ex\n",

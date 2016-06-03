@@ -199,6 +199,11 @@
       "Type": "String",
       "Default": "CWL-consumer"
     },
+    "S3IndexBackupPath": {
+      "Description": "The path where the s3 backup will store indexes",
+      "Type": "String",
+      "Default": "ELK-index"
+    },
     "CloudWatchConsumerCompiledZip": {
       "Description": "The zip file built using maven, which contains jars and configs. Do not include '-cfn.zip' here. The real file should end with -cfn.zip",
       "Type": "String",
@@ -449,22 +454,25 @@
           "Statement": [
                {
                   "Action": [
-                    "s3:GetObject",
+                    "s3:GetBucketLocation",
                     "s3:ListBucket"
                   ],
                   "Effect": "Allow",
-                  "Resource": {
-                    "Fn::Join": [
-                      "",
-                      [
-                        "arn:aws:s3:::",
-                        {
-                          "Ref": "S3bucketSource"
-                        },
-                        "/*"
-                      ]
-                    ]
-                  }
+                  "Resource": { "Fn::Join": ["",[ "arn:aws:s3:::",{ "Ref": "S3bucketSource" } ] ] }
+                },
+               {
+                  "Action": [
+                    "s3:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": { "Fn::Join": ["",[ "arn:aws:s3:::",{ "Ref": "S3bucketSource" }, "/",{ "Ref": "S3IndexBackupPath" },"*"] ] }
+                },
+               {
+                  "Action": [
+                    "s3:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": { "Fn::Join": ["",[ "arn:aws:s3:::",{ "Ref": "S3bucketSource" }, "/",{ "Ref": "S3DownloadPath" },"*"] ] }
                 },
             {
               "Effect": "Allow",
@@ -815,6 +823,36 @@
                   ]]},
                   "mode"  : "000755"
               },
+              "/etc/elasticsearch/inits3backup.sh": {
+                "content": { "Fn::Join" : ["", [
+                  "#!/bin/bash -x\n\n",
+                  "until curl -XPUT 'http://localhost:9200/_snapshot/s3_dev_backup' -d '{\n",
+                  "    \"type\": \"s3\",\n",
+                  "    \"settings\": {\n",
+                  "        \"bucket\": \"",{ "Ref" : "S3bucketSource" },"\",\n",
+                  "        \"region\": \"",{ "Ref": "AWS::Region" },"\",\n",
+                  "        \"base_path\": \"",{ "Ref" : "S3IndexBackupPath" },"\",\n",
+                  "        \"max_retries\": 3\n",
+                  "     }\n",
+                  "}'; do sleep 10; done\n",
+                  "\n"
+                  ]]},
+                  "mode"  : "000755"
+              },
+              "/etc/elasticsearch/s3backup.sh": {
+                "content": { "Fn::Join" : ["", [
+                  "#!/bin/bash -x\n\n",
+                  "yesterday=`date +%Y.%m.%d -d 'yesterday'`\n",
+                  "index=\"cwl-$yesterday\"\n",
+                  "curl -XPUT \"http://localhost:9200/_snapshot/s3_dev_backup/$yesterday?wait_for_completion=true\" -d \"{\n",
+                  "    \\\"indices\\\": \\\"$index\\\",\n",
+                  "    \\\"ignore_unavailable\\\": true,\n",
+                  "    \\\"include_global_state\\\": false\n",
+                  "}\"\n",
+                  "\n"
+                  ]]},
+                  "mode"  : "000755"
+              },
               "/etc/elasticsearch/startLogConsumer.sh": {
                 "content": { "Fn::Join" : ["", [
                   "#!/bin/bash -x\n\n",
@@ -920,7 +958,7 @@
           } 
         } ],
         "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
-          "#!/bin/bash -x\n",
+          "#!/bin/bash -ex\n",
                 "mkdir /var/lib/elasticsearch\n",
                 "#initialise data volume\n",
                 "mkfs.ext4 /dev/xvdl\n",
@@ -996,9 +1034,14 @@
 
           "crontab mycron && rm -f mycron || error_exit \"Failed to set cron \" \n",
 
-          "# Set cron for Snapshots\n",
+          "# Subscribe the s3 bucket\n",
+          "/etc/elasticsearch/inits3backup.sh\n",
+          "# Set cron for Volume Snapshots\n",
           "crontab -l > snapcron\n",
           "echo \"0 1 * * * /etc/elasticsearch/snapshot.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
+          "# Set cron for s3 backups\n",
+          "crontab -l > snapcron\n",
+          "echo \"0 11 * * * /etc/elasticsearch/s3backup.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
           "# Try to register CloudWatch subscription filters\n",
           "cat > /etc/subscribefilters.sh << 'EOF'\n",
           "#!/bin/bash -ex\n",

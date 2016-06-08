@@ -158,6 +158,11 @@
       "Type": "String",
       "Default": "none"
     },
+    "ManagedServicesTopicARN": {
+      "Description": "ManagedServicesTopicARN",
+      "Type": "String",
+      "Default": ""
+    },
     "HttpProxyPort": {
       "Description": "Optional http proxy port. Will be used only if HttpProxyHost is set",
       "Type": "String",
@@ -199,6 +204,10 @@
       "Type": "String",
       "Default": "CWL-consumer"
     },
+    "S3bucketBackup": {
+      "Description": "The S3 bucket for index backups",
+      "Type": "String"
+    },
     "S3IndexBackupPath": {
       "Description": "The path where the s3 backup will store indexes",
       "Type": "String",
@@ -231,9 +240,15 @@
     },
 
     "RetentionDays" : {
-      "Description": "Number of days to retain logs in the Elasticsearch cluster",
+      "Description": "Number of days to retain online logs in the Elasticsearch cluster",
       "Type": "Number",
-      "Default" : "14",
+      "Default" : "31",
+      "MinValue" : "1"
+    },
+    "IndexBackupRetentionDays" : {
+      "Description": "Number of days to retain index backups on s3",
+      "Type": "Number",
+      "Default" : "365",
       "MinValue" : "1"
     },
 
@@ -295,58 +310,15 @@
       "AWSLambda": { "Value": "[timestamp=*Z, request_id=\"*-*\", event]" },
       "AWSCloudTrail": { "Value": "" },
       "Custom": { "Value": "" }
-    },
-
-    "AWSInstanceType2Arch" : {
-      "t2.micro"    : { "Arch" : "HVM64"  },
-      "t2.small"    : { "Arch" : "HVM64"  },
-      "t2.medium"   : { "Arch" : "HVM64"  },
-      "t2.large"    : { "Arch" : "HVM64"  },
-      "m4.large"    : { "Arch" : "HVM64"  },
-      "m4.xlarge"   : { "Arch" : "HVM64"  },
-      "m4.2xlarge"  : { "Arch" : "HVM64"  },
-      "m4.4xlarge"  : { "Arch" : "HVM64"  },
-      "m4.10xlarge" : { "Arch" : "HVM64"  },
-      "m3.medium"   : { "Arch" : "HVM64"  },
-      "m3.large"    : { "Arch" : "HVM64"  },
-      "m3.xlarge"   : { "Arch" : "HVM64"  },
-      "m3.2xlarge"  : { "Arch" : "HVM64"  },
-      "c3.large"    : { "Arch" : "HVM64"  },
-      "c3.xlarge"   : { "Arch" : "HVM64"  },
-      "c3.2xlarge"  : { "Arch" : "HVM64"  },
-      "c3.4xlarge"  : { "Arch" : "HVM64"  },
-      "c3.8xlarge"  : { "Arch" : "HVM64"  },
-      "c4.large"    : { "Arch" : "HVM64"  },
-      "c4.xlarge"   : { "Arch" : "HVM64"  },
-      "c4.2xlarge"  : { "Arch" : "HVM64"  },
-      "c4.4xlarge"  : { "Arch" : "HVM64"  },
-      "c4.8xlarge"  : { "Arch" : "HVM64"  },
-      "r3.large"    : { "Arch" : "HVM64"  },
-      "r3.xlarge"   : { "Arch" : "HVM64"  },
-      "r3.2xlarge"  : { "Arch" : "HVM64"  },
-      "r3.4xlarge"  : { "Arch" : "HVM64"  },
-      "r3.8xlarge"  : { "Arch" : "HVM64"  },
-      "i2.xlarge"   : { "Arch" : "HVM64"  },
-      "i2.2xlarge"  : { "Arch" : "HVM64"  },
-      "i2.4xlarge"  : { "Arch" : "HVM64"  },
-      "i2.8xlarge"  : { "Arch" : "HVM64"  },
-      "d2.xlarge"   : { "Arch" : "HVM64"  },
-      "d2.2xlarge"  : { "Arch" : "HVM64"  },
-      "d2.4xlarge"  : { "Arch" : "HVM64"  },
-      "d2.8xlarge"  : { "Arch" : "HVM64"  },
-      "hi1.4xlarge" : { "Arch" : "HVM64"  },
-      "hs1.8xlarge" : { "Arch" : "HVM64"  },
-      "cr1.8xlarge" : { "Arch" : "HVM64"  },
-      "cc2.8xlarge" : { "Arch" : "HVM64"  }
     }
-
   },
   
   "Conditions" : {
     "CreateCWLForStack" : {"Fn::Equals" : [{"Ref" : "MonitorStack"}, "true"]},
     "NoKeySpecified" : {"Fn::Equals" : [{"Ref" : "KeyName"}, ""]},
     "CustomLogFormat": {"Fn::Equals" : [{"Ref" : "LogFormat"}, "Custom"]},
-    "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]}
+    "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]},
+    "EnableAlarms": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "ManagedServicesTopicARN" }, ""]}]}
   },
 
   "Resources" : {
@@ -376,7 +348,30 @@
     "KinesisSubscriptionStream": {
       "Type": "AWS::Kinesis::Stream",
       "Properties" :  {
-        "ShardCount": { "Ref": "KinesisShards" }
+        "ShardCount": { "Ref": "KinesisShards" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {"Ref": "TagService" },
+                  {"Ref": "TagApplication" },
+                  {"Ref": "TagEnvironment" },
+                  {"Ref": "TagEnvironmentNumber" },
+                  {"Ref": "TagRole" },
+                  {"Ref": "BuildId" }
+                ]
+              ]
+            }
+          },
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Service","Value": {"Ref": "TagService"}},
+          {"Key": "Application","Value": {"Ref": "TagApplication"}},
+          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
+        ]
       }
     },
 
@@ -462,10 +457,18 @@
                 },
                {
                   "Action": [
+                    "s3:GetBucketLocation",
+                    "s3:ListBucket"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": { "Fn::Join": ["",[ "arn:aws:s3:::",{ "Ref": "S3bucketBackup" } ] ] }
+                },
+               {
+                  "Action": [
                     "s3:*"
                   ],
                   "Effect": "Allow",
-                  "Resource": { "Fn::Join": ["",[ "arn:aws:s3:::",{ "Ref": "S3bucketSource" }, "/",{ "Ref": "S3IndexBackupPath" },"*"] ] }
+                  "Resource": { "Fn::Join": ["",[ "arn:aws:s3:::",{ "Ref": "S3bucketBackup" }, "/",{ "Ref": "S3IndexBackupPath" },"*"] ] }
                 },
                {
                   "Action": [
@@ -555,7 +558,12 @@
                 ]
               ]
             }
-          }
+          },
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Service","Value": {"Ref": "TagService"}},
+          {"Key": "Application","Value": {"Ref": "TagApplication"}},
+          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
     },
@@ -567,7 +575,30 @@
         "IpProtocol" : "tcp", 
         "FromPort" : "9300", 
         "ToPort" : "9399",
-        "SourceSecurityGroupId" : { "Ref" : "ElasticsearchSecurityGroup" }
+        "SourceSecurityGroupId" : { "Ref" : "ElasticsearchSecurityGroup" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {"Ref": "TagService" },
+                  {"Ref": "TagApplication" },
+                  {"Ref": "TagEnvironment" },
+                  {"Ref": "TagEnvironmentNumber" },
+                  {"Ref": "TagRole" },
+                  {"Ref": "BuildId" }
+                ]
+              ]
+            }
+          },
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Service","Value": {"Ref": "TagService"}},
+          {"Key": "Application","Value": {"Ref": "TagApplication"}},
+          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
+        ]
       }
     }, 
 
@@ -600,7 +631,12 @@
                 ]
               ]
             }
-          }
+          },
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Service","Value": {"Ref": "TagService"}},
+          {"Key": "Application","Value": {"Ref": "TagApplication"}},
+          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
     },
@@ -648,7 +684,38 @@
             "Key": "type",
             "Value": "elasticsearch",
             "PropagateAtLaunch": "true"
-          }
+          },
+          {
+          "Key": "Tenant",
+          "Value": {
+            "Ref": "TagTenant"
+          },
+          "PropagateAtLaunch": "true"
+          }, {
+          "Key": "Service",
+          "Value": {
+            "Ref": "TagService"
+          },
+          "PropagateAtLaunch": "true"
+          }, {
+          "Key": "Application",
+          "Value": {
+            "Ref": "TagApplication"
+          },
+          "PropagateAtLaunch": "true"
+          }, {
+          "Key": "Role",
+          "Value": {
+            "Ref": "TagRole"
+          },
+          "PropagateAtLaunch": "true"
+          }, {
+          "Key": "Environment",
+          "Value": {
+            "Ref": "TagEnvironment"
+          },
+          "PropagateAtLaunch": "true"
+         }
         ]
       }
     },
@@ -701,14 +768,18 @@
                 ]
               ]
             }
-          }
+          },
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Service","Value": {"Ref": "TagService"}},
+          {"Key": "Application","Value": {"Ref": "TagApplication"}},
+          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
     },
 
     "ElasticsearchServer": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
-      
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "config" : {
@@ -806,7 +877,11 @@
                   "volumeLid=`aws --region=$REGION ec2 describe-volumes --filters Name=attachment.instance-id,Values=$instanceid --query Volumes[].Attachments[].[VolumeId,Device] --output text | grep sdl | awk '{print $1}'`\n",
                   "snapid=`aws --region=$REGION ec2 create-snapshot --volume-id $volumeLid --description \"ELK volume /dev/sdl InstanceId:$instanceid\" --query SnapshotId --output text`\n",
                   "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Name,Value=$nametag\n",
-                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=StackName,Value='",{ "Ref" : "AWS::StackName" },"'\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Tenant,Value='",{ "Ref" : "TagTenant" },"'\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Service,Value='",{ "Ref" : "TagService" },"'\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Application,Value='",{ "Ref" : "TagApplication" },"'\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Role='",{ "Ref" : "TagRole" },"'\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Environment,Value='",{ "Ref" : "TagEnvironment" },"'\n",
                   "#\n",
                   "snaplist=`aws ec2 --region=ap-southeast-2 describe-snapshots --filters Name=tag-value,Values=",{ "Ref" : "AWS::StackName" }," --query Snapshots[].[StartTime,SnapshotId] --output text`\n",
                   "IFS=$'\n'\n",
@@ -829,7 +904,7 @@
                   "until curl -XPUT 'http://localhost:9200/_snapshot/s3_dev_backup' -d '{\n",
                   "    \"type\": \"s3\",\n",
                   "    \"settings\": {\n",
-                  "        \"bucket\": \"",{ "Ref" : "S3bucketSource" },"\",\n",
+                  "        \"bucket\": \"",{ "Ref" : "S3bucketBackup" },"\",\n",
                   "        \"region\": \"",{ "Ref": "AWS::Region" },"\",\n",
                   "        \"base_path\": \"",{ "Ref" : "S3IndexBackupPath" },"\",\n",
                   "        \"max_retries\": 3\n",
@@ -842,7 +917,9 @@
               "/etc/elasticsearch/s3backup.sh": {
                 "content": { "Fn::Join" : ["", [
                   "#!/bin/bash -x\n\n",
-                  "indiceslist=`curl -s http://localhost:9200/_cat/indices | awk '{print $3}'`\n",
+                  "#indiceslist=`curl -s http://localhost:9200/_cat/indices | awk '{print $3}'`\n",
+                  "yesterday=`date +%Y.%m.%d -d 'yesterday'`\n",
+                  "indiceslist=cwl-$yesterday\n",
                   "for index in $indiceslist; do list=\"$list,$index\"; done\n",
                   "list=`echo $list | sed 's/^,//'`\n",
                   "date=`date +%Y.%m.%d`\n",
@@ -854,6 +931,9 @@
                   "    \\\"ignore_unavailable\\\": true,\n",
                   "    \\\"include_global_state\\\": false\n",
                   "}\"\n",
+                  "#remove index backup  older than specified below days\n",
+                  "olderthandate=`date +%Y.%m.%d -d '",{ "Ref" : "IndexBackupRetentionDays" }," days ago'`\n",
+                  "curl -XDELETE \"http://localhost:9200/_snapshot/s3_dev_backup/$olderthandate\"\n",
                   "\n"
                   ]]},
                   "mode"  : "000755"
@@ -1117,6 +1197,174 @@
             "Fn::GetAtt": ["ElasticsearchELB", "DNSName" ]
           }
         ]
+      }
+    },
+    "InstanceCPULoadAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when CPU usage is above 90%",
+        "Namespace" : "AWS/EC2",
+        "MetricName" : "CPUUtilization",
+        "Statistic" : "Average",
+        "Period" : "300",
+        "Threshold" : "90",
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
+          } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "StatusCheckFailedAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when either StatusCheckFailed_System or StatusCheckFailed_Instance returns a failure",
+        "Namespace" : "AWS/EC2",
+        "MetricName" : "StatusCheckFailed",
+        "Statistic" : "Sum",
+        "Period" : "300",
+        "Threshold" : "1",
+        "Unit" : "Count",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
+          } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "UnHealthyHostAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when Unhealthy application servers exist.",
+        "Namespace" : "AWS/ELB",
+        "MetricName" : "UnHealthyHostCount",
+        "Statistic" : "Sum",
+        "Period" : "60",
+        "Threshold" : "1",
+        "Unit" : "Count",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+          "Name" : "LoadBalancerName",
+          "Value" : { "Ref" : "ElasticsearchELB"}
+        } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "SpillOverCountAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when the load balancer queue is full and can't serve request, Client will get a 503 error..",
+        "Namespace" : "AWS/ELB",
+        "MetricName" : "SpillOverCount",
+        "Statistic" : "Sum",
+        "Period" : "60",
+        "Threshold" : "1",
+        "Unit" : "Count",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+          "Name" : "LoadBalancerName",
+          "Value" : { "Ref" : "ElasticsearchELB"}
+        } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "LatencyAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when the back end applications take longer then 500ms to respond.",
+        "Namespace" : "AWS/ELB",
+        "MetricName" : "Latency",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "Threshold" : "500",
+        "Unit" : "Milliseconds",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+          "Name" : "LoadBalancerName",
+          "Value" : { "Ref" : "ElasticsearchELB"}
+        } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "HTTPCodeELB5xx" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when the load balancer Delivers 5xx errors to clients",
+        "Namespace" : "AWS/ELB",
+        "MetricName" : "HTTPCode_ELB_5XX",
+        "Statistic" : "Sum",
+        "Period" : "60",
+        "Threshold" : "1",
+        "Unit" : "Count",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+          "Name" : "LoadBalancerName",
+          "Value" : { "Ref" : "ElasticsearchELB"}
+        } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "HTTPCode4xxBackendAlert" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when the load balancer receives 4xx errors from the backend servers.",
+        "Namespace" : "AWS/ELB",
+        "MetricName" : "HTTPCode_Backend_4XX",
+        "Statistic" : "Sum",
+        "Period" : "60",
+        "Threshold" : "1",
+        "Unit" : "Count",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+          "Name" : "LoadBalancerName",
+          "Value" : { "Ref" : "ElasticsearchELB"}
+        } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+      }
+    },
+    "HTTPCode5xxBackendAlert" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Condition": "EnableAlarms",
+      "Properties" : {
+        "AlarmDescription" : "Alarm when the load balancer receives 5xx errors from the backend servers.",
+        "Namespace" : "AWS/ELB",
+        "MetricName" : "HTTPCode_Backend_5XX",
+        "Statistic" : "Sum",
+        "Period" : "60",
+        "Threshold" : "1",
+        "Unit" : "Count",
+        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods" : "1",
+        "Dimensions" : [ {
+          "Name" : "LoadBalancerName",
+          "Value" : { "Ref" : "ElasticsearchELB" }
+        } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     }
   },

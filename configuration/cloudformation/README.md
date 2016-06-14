@@ -142,4 +142,94 @@ aws logs put-subscription-filter \
 Usage:
 `./subscribe-cross.sh 'loggroupname' '[field1, field2, fileld3]'`
 
-  
+
+## Authorise new AWS account to the kinesis stream (log destination)
+
+1. describe the log destination:
+
+```sh
+aws logs describe-destinations
+{
+    "destinations": [
+        {
+            "roleArn": "arn:aws:iam::300579097309:role/core-elk-1-dev-3-CloudWatchLogsKinesisRole-MO5NPEOCUCDB",
+            "creationTime": 1464749057362,
+            "destinationName": "ELKCrossLogDestination-3",
+            "accessPolicy": "{\n  \"Version\" : \"2012-10-17\",\n  \"Statement\" : [\n    {\n      \"Sid\" : \"\",\n      \"Effect\" : \"Allow\",\n      \"Principal\" : {\n        \"AWS\" : \"018578619640\"\n      },\n      \"Action\" : \"logs:PutSubscriptionFilter\",\n      \"Resource\" : \"arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3\"\n    },\n    {\n      \"Sid\" : \"\",\n      \"Effect\" : \"Allow\",\n      \"Principal\" : {\n        \"AWS\" : \"008399649760\"\n      },\n      \"Action\" : \"logs:PutSubscriptionFilter\",\n      \"Resource\" : \"arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3\"\n    }\n  ]\n}\n",
+            "targetArn": "arn:aws:kinesis:ap-southeast-2:300579097309:stream/core-elk-1-dev-3-KinesisSubscriptionStream-U74VQVGK31AP",
+            "arn": "arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3"
+        }
+    ]
+}
+
+```
+
+2. Extract the access policy from the output:
+
+```sh
+"accessPolicy": "{\n  \"Version\" : \"2012-10-17\",\n  \"Statement\" : [\n    {\n      \"Sid\" : \"\",\n      \"Effect\" : \"Allow\",\n      \"Principal\" : {\n        \"AWS\" : \"018578619640\"\n      },\n      \"Action\" : \"logs:PutSubscriptionFilter\",\n      \"Resource\" : \"arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3\"\n    },\n    {\n      \"Sid\" : \"\",\n      \"Effect\" : \"Allow\",\n      \"Principal\" : {\n        \"AWS\" : \"008399649760\"\n      },\n      \"Action\" : \"logs:PutSubscriptionFilter\",\n      \"Resource\" : \"arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3\"\n    }\n  ]\n}\n",
+```
+this, expanding the newlines and removing prepended '\',  will render as:
+
+```js
+{
+ "Version" : "2012-10-17",
+ "Statement" : [
+     {
+        "Sid" : "",
+        "Effect" : "Allow",
+        "Principal" : { "AWS" : "018578619640" },
+        "Action" : "logs:PutSubscriptionFilter",
+        "Resource" : "arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3"
+     },
+     {
+        "Sid" : "",
+        "Effect" : "Allow",
+        "Principal" : {"AWS" : "008399649760"},
+        "Action" : "logs:PutSubscriptionFilter",
+        "Resource" : "arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3"
+      }
+   ]
+ }
+```
+
+3. Add the new cross-account ID to the policy, by copy one block and replace the Account ID:
+
+```js
+{
+ "Version" : "2012-10-17",
+ "Statement" : [
+     {
+        "Sid" : "",
+        "Effect" : "Allow",
+        "Principal" : { "AWS" : "018578619640" },
+        "Action" : "logs:PutSubscriptionFilter",
+        "Resource" : "arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3"
+     },
+     {
+        "Sid" : "",
+        "Effect" : "Allow",
+        "Principal" : {"AWS" : "008399649760"},
+        "Action" : "logs:PutSubscriptionFilter",
+        "Resource" : "arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3"
+      },
+      {
+        "Sid" : "",
+        "Effect" : "Allow",
+        "Principal" : {"AWS" : "785460830895"},
+        "Action" : "logs:PutSubscriptionFilter",
+        "Resource" : "arn:aws:logs:ap-southeast-2:300579097309:destination:ELKCrossLogDestination-3"
+      }
+   ]
+ }
+
+```
+
+4. Update the destination log policy:
+ - save te prepared policy at (3.) to a file (d.json in my case)
+ - update the log destination:
+```sh
+aws logs put-destination-policy --destination-name ELKCrossLogDestination-3 --access-policy file://d.json
+```
+
+This is it. Now the log destination 'ELKCrossLogDestination-3' can be used from the new AWS account 785460830895

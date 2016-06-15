@@ -131,6 +131,11 @@
       "Type": "String",
       "Default": "elk"
     },
+    "TagEngagement": {
+      "Description": "The engagement, eg. tufms ",
+      "Type": "String",
+      "Default": "tufms"
+    },
     "ELBSSLCertificate": {
       "Description": "SSL Certificate for the Elastic Load Balancer.",
       "Type": "String"
@@ -892,6 +897,17 @@
                   ]]},
                   "mode"  : "000755"
               },
+              "/etc/elasticsearch/health.sh": {
+                "content": { "Fn::Join" : ["", [
+                  "#!/bin/bash -xe\n\n",
+                  "#Healtch checker. Should run every minute via crontab\n",
+                  "date=`date --iso-8601=seconds`\n",
+                  "curl -s http://localhost:9200/_cluster/health | sed \"s/^/$date /\" >> /var/log/elasticsearch/elasticsearch-health.log\n",
+                  "echo '' >> /var/log/elasticsearch/elasticsearch-health.log\n",
+                  "\n"
+                  ]]},
+                  "mode"  : "000755"
+              },
               "/etc/elasticsearch/inits3backup.sh": {
                 "content": { "Fn::Join" : ["", [
                   "#!/bin/bash -x\n\n",
@@ -1115,6 +1131,10 @@
 
           "# Subscribe the s3 bucket\n",
           "/etc/elasticsearch/inits3backup.sh\n",
+          "# Set cron for elasticsearch healths\n",
+          "crontab -l > snapcron\n",
+          "echo \"* * * * * /etc/elasticsearch/health.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
+          "sed -i '1s#^#/var/log/elasticsearch/elasticsearch-health.log\\n#' /etc/logrotate.d/elasticsearch\n",
           "# Set cron for Volume Snapshots\n",
           "crontab -l > snapcron\n",
           "echo \"0 1 * * * /etc/elasticsearch/snapshot.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
@@ -1149,22 +1169,27 @@
           "\n",
           "[/var/log/elasticsearch/elasticsearch.log]\n",
           "file = /var/log/elasticsearch/elasticsearch.log\n",
-          "log_group_name = ELK\n",
+          "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#elasticsearch.log\n",
+          "log_stream_name = {instance_id}\n",
+          "\n",
+          "[/var/log/elasticsearch/elasticsearch-health.log]\n",
+          "file = /var/log/elasticsearch/elasticsearch-health.log\n",
+          "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#elasticsearch-health.log\n",
           "log_stream_name = {instance_id}\n",
           "\n",
           "[/var/log/nginx/access.log]\n",
           "file = /var/log/nginx/access.log\n",
-          "log_group_name = ELK\n",
+          "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#access.log\n",
           "log_stream_name = {instance_id}\n",
           "\n",
           "[/var/log/nginx/error.log]\n",
           "file = /var/log/nginx/error.log\n",
-          "log_group_name = ELK\n",
+          "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#error.log\n",
           "log_stream_name = {instance_id}\n",
           "\n",
           "[/var/log/cloudwatch-logs-subscription-consumer.log]\n",
           "file = /var/log/cloudwatch-logs-subscription-consumer.log\n",
-          "log_group_name = ELK\n",
+          "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#cloudwatch-logs-subscription-consumer.log\n",
           "log_stream_name = {instance_id}\n",
           "EOF\n",
           "/etc/init.d/awslogs restart\n",

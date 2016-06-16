@@ -136,6 +136,11 @@
       "Type": "String",
       "Default": "tufms"
     },
+    "TagAlarmPrefix": {
+      "Description": "The visible predix by the convention, eg [TUFMS][0] ",
+      "Type": "String",
+      "Default": "[TUFMS][0]"
+    },
     "ELBSSLCertificate": {
       "Description": "SSL Certificate for the Elastic Load Balancer.",
       "Type": "String"
@@ -505,6 +510,13 @@
               "Effect": "Allow",
               "Action": [
                 "logs:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:*"
               ],
               "Resource": "*"
             },
@@ -1193,7 +1205,14 @@
           "log_stream_name = {instance_id}\n",
           "EOF\n",
           "/etc/init.d/awslogs restart\n",
-          "#\n",
+          "#add ELK disk counter\n",
+          "sed -i '/region =/a [[[ELKBytesPercentFree]]]\\ncollector = diskspace\\nmetric = diskspace._var_lib_elasticsearch.byte_percentfree\\nnamespace = DiskSpace\\nname = ELKBytesPercentFree\\nunit = Percent\\n\\n' /etc/diamond/diamond.conf\n",
+          "#Enabe and start Diamond\n",
+          "sed -i 's/=HTTPS_PROXY/=\\$HTTPS_PROXY/' /etc/systemd/system/diamond.service\n",
+          "sed -i 's/=HTTP_PROXY/=\\$HTTP_PROXY/' /etc/systemd/system/diamond.service\n",
+          "systemctl daemon-reload\n",
+          "systemctl enable diamond.service\n",
+          "systemctl start diamond.service\n\n",
           "#bash -x /etc/subscribefilters.sh\n",
           "\n"
         ]]}}
@@ -1207,8 +1226,7 @@
           "Ref": "DNSZoneId"
         },
         "Comment": "ELK Cluster ELB Record",
-        "Name": {
-          "Fn::Join": [ "",[ "TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain"},"."] ] },
+        "Name": {"Fn::Join": [ "",[ "TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain"},"."] ] },
         "Type": "CNAME",
         "TTL": "60",
         "ResourceRecords": [
@@ -1223,6 +1241,7 @@
       "Condition": "EnableAlarms",
       "Properties" : {
         "AlarmDescription" : "Alarm when CPU usage is above 90%",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," InstanceCPULoadAlarm"] ] },
         "Namespace" : "AWS/EC2",
         "MetricName" : "CPUUtilization",
         "Statistic" : "Average",
@@ -1244,6 +1263,7 @@
       "Condition": "EnableAlarms",
       "Properties" : {
         "AlarmDescription" : "Alarm when either StatusCheckFailed_System or StatusCheckFailed_Instance returns a failure",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," StatusCheckFailedAlarm"] ] },
         "Namespace" : "AWS/EC2",
         "MetricName" : "StatusCheckFailed",
         "Statistic" : "Sum",
@@ -1265,6 +1285,7 @@
       "Condition": "EnableAlarms",
       "Properties" : {
         "AlarmDescription" : "Alarm when Unhealthy application servers exist.",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," UnHealthyHostAlarm"] ] },
         "Namespace" : "AWS/ELB",
         "MetricName" : "UnHealthyHostCount",
         "Statistic" : "Sum",
@@ -1281,109 +1302,230 @@
         "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
-    "SpillOverCountAlarm" : {
+    "ELKStatusFilter": {
+    "Type": "AWS::Logs::MetricFilter",
+    "Properties": {
+        "LogGroupName": { "Fn::Join" : ["", [{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#elasticsearch-health.log"]]},
+        "FilterPattern": "{$.status = \"green\" }",
+        "MetricTransformations": [
+            {
+                "MetricValue": "1",
+                "MetricNamespace": "ELKStatus",
+                "MetricName": "ELKStatusNotGreen"
+            }
+        ]
+    }
+  },
+
+  "ELKNumberOfNodes": {
+    "Type": "AWS::Logs::MetricFilter",
+    "Properties": {
+        "LogGroupName": { "Fn::Join" : ["", [{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#elasticsearch-health.log"]]},
+        "FilterPattern": "{$.number_of_nodes = * }",
+        "MetricTransformations": [
+            {
+                "MetricValue": "1",
+                "MetricNamespace": "ELKStatus",
+                "MetricName": "ELKStatusNumberOfNodes"
+            }
+        ]
+    }
+  },
+
+        "ELKNotGreenAlarm": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "This will change to insufficent if status is not green. ",
+                "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKNotGreenAlarm"] ] },
+                "MetricName": "ELKStatusNotGreen",
+                "Namespace": "ELKStatus",
+                "Statistic": "SampleCount",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "ComparisonOperator": "LessThanThreshold"
+            }
+        },
+
+        "ELKNumberOfNodesAlarm": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "This  will change to Alarm if number of nodes less than 2 ",
+                "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKNumberOfNodesAlarm"] ] },
+                "MetricName": "ELKStatusNumberOfNodes",
+                "Namespace": "ELKStatus",
+                "Statistic": "SampleCount",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "ComparisonOperator": "LessThanOrEqualToThreshold"
+            }
+        },
+    "RootBytesPercentFree": {
       "Type" : "AWS::CloudWatch::Alarm",
-      "Condition": "EnableAlarms",
       "Properties" : {
-        "AlarmDescription" : "Alarm when the load balancer queue is full and can't serve request, Client will get a 503 error..",
-        "Namespace" : "AWS/ELB",
-        "MetricName" : "SpillOverCount",
-        "Statistic" : "Sum",
-        "Period" : "60",
-        "Threshold" : "1",
-        "Unit" : "Count",
-        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods" : "1",
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/ volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," RootBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "RootBytesPercentFree",
+        "Namespace" : "DiskSpace",
         "Dimensions" : [ {
-          "Name" : "LoadBalancerName",
-          "Value" : { "Ref" : "ElasticsearchELB"}
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
         } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
-      }
-    },
-    "LatencyAlarm" : {
-      "Type" : "AWS::CloudWatch::Alarm",
-      "Condition": "EnableAlarms",
-      "Properties" : {
-        "AlarmDescription" : "Alarm when the back end applications take longer then 500ms to respond.",
-        "Namespace" : "AWS/ELB",
-        "MetricName" : "Latency",
+        "Unit" : "Percent",
+        "Period" : "60",
         "Statistic" : "Average",
-        "Period" : "60",
-        "Threshold" : "500",
-        "Unit" : "Milliseconds",
-        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods" : "1",
-        "Dimensions" : [ {
-          "Name" : "LoadBalancerName",
-          "Value" : { "Ref" : "ElasticsearchELB"}
-        } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "Threshold" : "20"
       }
     },
-    "HTTPCodeELB5xx" : {
+    "HomeBytesPercentFree": {
       "Type" : "AWS::CloudWatch::Alarm",
-      "Condition": "EnableAlarms",
       "Properties" : {
-        "AlarmDescription" : "Alarm when the load balancer Delivers 5xx errors to clients",
-        "Namespace" : "AWS/ELB",
-        "MetricName" : "HTTPCode_ELB_5XX",
-        "Statistic" : "Sum",
-        "Period" : "60",
-        "Threshold" : "1",
-        "Unit" : "Count",
-        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods" : "1",
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/home volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," HomeBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "HomeBytesPercentFree",
+        "Namespace" : "DiskSpace",
         "Dimensions" : [ {
-          "Name" : "LoadBalancerName",
-          "Value" : { "Ref" : "ElasticsearchELB"}
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
         } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "Unit" : "Percent",
+        "Period" : "60",
+        "Statistic" : "Average",
+        "Threshold" : "20"
       }
     },
-    "HTTPCode4xxBackendAlert" : {
+    "VarBytesPercentFree": {
       "Type" : "AWS::CloudWatch::Alarm",
-      "Condition": "EnableAlarms",
       "Properties" : {
-        "AlarmDescription" : "Alarm when the load balancer receives 4xx errors from the backend servers.",
-        "Namespace" : "AWS/ELB",
-        "MetricName" : "HTTPCode_Backend_4XX",
-        "Statistic" : "Sum",
-        "Period" : "60",
-        "Threshold" : "1",
-        "Unit" : "Count",
-        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods" : "1",
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/var volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," VarBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "VarBytesPercentFree",
+        "Namespace" : "DiskSpace",
         "Dimensions" : [ {
-          "Name" : "LoadBalancerName",
-          "Value" : { "Ref" : "ElasticsearchELB"}
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
         } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "Unit" : "Percent",
+        "Period" : "60",
+        "Statistic" : "Average",
+        "Threshold" : "20"
       }
     },
-    "HTTPCode5xxBackendAlert" : {
+    "VarLogBytesPercentFree": {
       "Type" : "AWS::CloudWatch::Alarm",
-      "Condition": "EnableAlarms",
       "Properties" : {
-        "AlarmDescription" : "Alarm when the load balancer receives 5xx errors from the backend servers.",
-        "Namespace" : "AWS/ELB",
-        "MetricName" : "HTTPCode_Backend_5XX",
-        "Statistic" : "Sum",
-        "Period" : "60",
-        "Threshold" : "1",
-        "Unit" : "Count",
-        "ComparisonOperator" : "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods" : "1",
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/var/log volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," VarLogBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "VarLogBytesPercentFree",
+        "Namespace" : "DiskSpace",
         "Dimensions" : [ {
-          "Name" : "LoadBalancerName",
-          "Value" : { "Ref" : "ElasticsearchELB" }
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
         } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "Unit" : "Percent",
+        "Period" : "60",
+        "Statistic" : "Average",
+        "Threshold" : "20"
+      }
+    },
+    "VarLogAuditBytesPercentFree": {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/var/log/audit volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," VarLogAuditBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "VarLogAuditBytesPercentFree",
+        "Namespace" : "DiskSpace",
+        "Dimensions" : [ {
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
+        } ],
+        "Unit" : "Percent",
+        "Period" : "60",
+        "Statistic" : "Average",
+        "Threshold" : "20"
+      }
+    },
+    "ELKBytesPercentFree": {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/var/lib/elasticsearch volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "ELKBytesPercentFree",
+        "Namespace" : "DiskSpace",
+        "Dimensions" : [ {
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
+        } ],
+        "Unit" : "Percent",
+        "Period" : "60",
+        "Statistic" : "Average",
+        "Threshold" : "20"
+      }
+    },
+    "TmpBytesPercentFree": {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "ActionsEnabled" : true,
+        "AlarmDescription" : "/tmp volume free space monitoring",
+        "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," TmpBytesPercentFree"] ] },
+        "ComparisonOperator" : "LessThanThreshold",
+        "EvaluationPeriods" : "5",
+        "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+        "MetricName" : "TmpBytesPercentFree",
+        "Namespace" : "DiskSpace",
+        "Dimensions" : [ {
+            "Name" : "AutoScalingGroupName",
+            "Value" : { "Ref" : "ElasticsearchServerGroup" }
+        } ],
+        "Unit" : "Percent",
+        "Period" : "60",
+        "Statistic" : "Average",
+        "Threshold" : "20"
       }
     }
   },

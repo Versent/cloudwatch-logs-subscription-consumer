@@ -18,7 +18,7 @@ ManagedServicesTopicARN="arn:aws:sns:ap-southeast-2:770806701093:CloudOPS-Founda
 ELBSSLCertificate="arn:aws:iam::770806701093:server-certificate/star.cloudops.tu-aws.com"
 S3bucketBackup="cloudops-$Environment.backup.transurban.com"
 S3bucketSource="cloudops-$Environment.files.transurban.com"
-TagEnvironment="production"
+TagEnvironment="prod"
 DNSZoneId=Z1IQXR7V1TDWS7
 vpcname=coreservices-$Environment
 
@@ -83,6 +83,10 @@ TagService="logging"
 TagTenant="Transurban"
 VPC=$vpcid
 
+#Create the loggroup for ELK state in advance. Fail is Ok if the group already exists
+set +e
+aws logs create-log-group --log-group-name "$TagEnvironment#tufms.elk#elasticsearch-health.log"
+set -e
 
 if [ ! "$httpproxyhost" = "none" ]; then
   httpproxy="UsePreviousValue=true,ParameterKey=HttpProxyHost,ParameterValue=$httpproxyhost UsePreviousValue=true,ParameterKey=HttpProxyPort,ParameterValue=$HttpProxyPort"

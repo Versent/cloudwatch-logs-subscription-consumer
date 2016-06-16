@@ -1206,7 +1206,7 @@
           "EOF\n",
           "/etc/init.d/awslogs restart\n",
           "#add ELK disk counter\n",
-          "sed -i '/region =/a [[[ELKBytesPercentFree]]]\\ncollector = diskspace\\nmetric = diskspace._var_lib_elasticsearch.byte_percentfree\\nnamespace = DiskSpace\\nname = ELKBytesPercentFree\\nunit = Percent\\n\\n' /etc/diamond/diamond.conf\n",
+          "sed -i '/region =/a [[[ELKBytesPercentFree]]]\\ncollector = diskspace\\nmetric = _var_lib_elasticsearch.byte_percentfree\\nnamespace = DiskSpace\\nname = ELKBytesPercentFree\\nunit = Percent\\n\\n' /etc/diamond/diamond.conf\n",
           "#Enabe and start Diamond\n",
           "sed -i 's/=HTTPS_PROXY/=\\$HTTPS_PROXY/' /etc/systemd/system/diamond.service\n",
           "sed -i 's/=HTTP_PROXY/=\\$HTTP_PROXY/' /etc/systemd/system/diamond.service\n",

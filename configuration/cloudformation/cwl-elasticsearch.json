@@ -58,15 +58,30 @@
        ],
       "ConstraintDescription" : "Must be a valid EC2 instance type"
     },
-
-    "AllowedIpSource" : {
-      "Description" : "The IP address range that can be used to access the Kibana interface, the Elasticsearch API, and the EC2 instances via SSH",
+    "ELBAllowedRange1": {
+      "Description": "Allowed Range 1 (CIDR) to elk ELB",
       "Type": "String",
-      "MinLength": "9",
-      "MaxLength": "18",
-      "Default": "0.0.0.0/0",
-      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
-      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x"
+      "Default": "172.17.32.0/20"
+    },
+    "ELBAllowedRange2": {
+      "Description": "Allowed Range 2 (CIDR) to elk ELB",
+      "Type": "String",
+      "Default": "10.98.64.0/22"
+    },
+    "ELBAllowedRange3": {
+      "Description": "Allowed Range 3 (CIDR) to elk ELB",
+      "Type": "String",
+      "Default": "10.96.80.0/20"
+    },
+    "ELBAllowedRange4": {
+      "Description": "Allowed Range 4 (CIDR) to elk ELB",
+      "Type": "String",
+      "Default": "10.153.16.128/26"
+    },
+    "ELBAllowedRange5": {
+      "Description": "Allowed Range 5 (CIDR) to elk ELB",
+      "Type": "String",
+      "Default": "10.98.32.0/20"
     },
     "VPC": {
       "Description": "The ID of the VPC we're launching into",
@@ -619,12 +634,11 @@
         "VpcId" : { "Ref" : "VPC" },
         "GroupDescription" : "Enable restricted ELB access",
         "SecurityGroupIngress" : [
-          {
-            "IpProtocol" : "tcp", 
-            "FromPort" : "443", 
-            "ToPort" : "443",
-            "CidrIp" : { "Ref" : "AllowedIpSource" }
-          }
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange1" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange2" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange3" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange4" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange5" } }
         ],
         "Tags": [
           {

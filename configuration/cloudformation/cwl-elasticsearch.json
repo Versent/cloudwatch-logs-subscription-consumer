@@ -901,11 +901,12 @@
                   "instanceid=`curl -s -L http://169.254.169.254/latest/meta-data/instance-id`\n",
                   "volumeLid=`aws --region=$REGION ec2 describe-volumes --filters Name=attachment.instance-id,Values=$instanceid --query Volumes[].Attachments[].[VolumeId,Device] --output text | grep sdl | awk '{print $1}'`\n",
                   "snapid=`aws --region=$REGION ec2 create-snapshot --volume-id $volumeLid --description \"ELK volume /dev/sdl InstanceId:$instanceid\" --query SnapshotId --output text`\n",
+                  "echo \"$datetag {\\\"snapshot_exitcode\\\": $?}\" >> /var/log/elasticsearch/backups.log\n",
                   "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Name,Value=$nametag\n",
                   "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Tenant,Value='",{ "Ref" : "TagTenant" },"'\n",
                   "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Service,Value='",{ "Ref" : "TagService" },"'\n",
                   "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Application,Value='",{ "Ref" : "TagApplication" },"'\n",
-                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Role='",{ "Ref" : "TagRole" },"'\n",
+                  "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Role,Value='",{ "Ref" : "TagRole" },"'\n",
                   "aws ec2 --region=$REGION create-tags --resources $snapid --tags Key=Environment,Value='",{ "Ref" : "TagEnvironment" },"'\n",
                   "#\n",
                   "snaplist=`aws ec2 --region=ap-southeast-2 describe-snapshots --filters Name=tag-value,Values=",{ "Ref" : "AWS::StackName" }," --query Snapshots[].[StartTime,SnapshotId] --output text`\n",
@@ -962,11 +963,18 @@
                   "rand=`awk 'BEGIN{srand();print int(rand()*(30))+1 }'`\n",
                   "echo \"Sleeping for random $rand seconds\"\n",
                   "sleep $rand\n",
-                  "curl -XPUT \"http://localhost:9200/_snapshot/s3_dev_backup/$date?wait_for_completion=true\" -d \"{\n",
-                  "    \\\"indices\\\": \\\"$list\\\",\n",
+                  "output=`curl -XPUT -s -o /dev/null -w \"%{http_code}\" \"http://localhost:9200/_snapshot/s3_dev_backup/$date?wait_for_completion=true\" -d \"{\n",
+                  "    \\\"indices\\\": \\\"$list,.kibana\\\",\n",
                   "    \\\"ignore_unavailable\\\": true,\n",
                   "    \\\"include_global_state\\\": false\n",
-                  "}\"\n",
+                  "}\"`\n",
+                  "case $output in\n",
+                  "400) code=240;;\n",
+                  "503) code=253;;\n",
+                  "*) code=$output;;\n",
+                  "esac\n",
+                  "\n",
+                  "echo \"$date {\\\"s3backup_code\\\": $code}\" >> /var/log/elasticsearch/backups.log\n",
                   "#remove index backup  older than specified below days\n",
                   "olderthandate=`date +%Y.%m.%d -d '",{ "Ref" : "IndexBackupRetentionDays" }," days ago'`\n",
                   "curl -XDELETE \"http://localhost:9200/_snapshot/s3_dev_backup/$olderthandate\"\n",
@@ -992,6 +1000,8 @@
                    "content": { "Fn::Join" : ["", [
                   "/var/log/elasticsearch/elasticsearch_index_indexing_slowlog.log\n",
                   "/var/log/elasticsearch/elasticsearch_index_search_slowlog.log\n",
+                  "/var/log/elasticsearch/elasticsearch-health.log\n",
+                  "/var/log/elasticsearch/backups.log\n",
                   "/var/log/elasticsearch/elasticsearch.log\n",
                   "{\n",
                   "    daily\n",
@@ -1160,7 +1170,6 @@
           "# Set cron for elasticsearch healths\n",
           "crontab -l > snapcron\n",
           "echo \"* * * * * /etc/elasticsearch/health.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
-          "sed -i '1s#^#/var/log/elasticsearch/elasticsearch-health.log\\n#' /etc/logrotate.d/elasticsearch\n",
           "# Set cron for Volume Snapshots\n",
           "crontab -l > snapcron\n",
           "echo \"0 1 * * * /etc/elasticsearch/snapshot.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
@@ -1196,6 +1205,11 @@
           "[/var/log/elasticsearch/elasticsearch.log]\n",
           "file = /var/log/elasticsearch/elasticsearch.log\n",
           "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#elasticsearch.log\n",
+          "log_stream_name = {instance_id}\n",
+          "\n",
+          "[/var/log/elasticsearch/backups.log]\n",
+          "file = /var/log/elasticsearch/backups.log\n",
+          "log_group_name = ",{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#backups.log\n",
           "log_stream_name = {instance_id}\n",
           "\n",
           "[/var/log/elasticsearch/elasticsearch-health.log]\n",
@@ -1330,6 +1344,34 @@
         ]
     }
   },
+  "ELKIndexBackupExitCode": {
+    "Type": "AWS::Logs::MetricFilter",
+    "Properties": {
+        "LogGroupName": { "Fn::Join" : ["", [{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#backups.log"]]},
+        "FilterPattern": "{$.s3backup_code = *}",
+        "MetricTransformations": [
+            {
+                "MetricValue": "$.s3backup_code",
+                "MetricNamespace": "ELKStatus",
+                "MetricName": "ELKIndexBackupExitCode"
+            }
+        ]
+    }
+  },
+  "ELKSnapshotExitCode": {
+    "Type": "AWS::Logs::MetricFilter",
+    "Properties": {
+        "LogGroupName": { "Fn::Join" : ["", [{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#backups.log"]]},
+        "FilterPattern": "{ $.snapshot_exitcode = * }",
+        "MetricTransformations": [
+            {
+                "MetricValue": "$.snapshot_exitcode",
+                "MetricNamespace": "ELKStatus",
+                "MetricName": "ELKSnapshotExitCode"
+            }
+        ]
+    }
+  },
 
   "ELKNumberOfNodes": {
     "Type": "AWS::Logs::MetricFilter",
@@ -1338,7 +1380,7 @@
         "FilterPattern": "{$.number_of_nodes = * }",
         "MetricTransformations": [
             {
-                "MetricValue": "1",
+                "MetricValue": "$.number_of_nodes",
                 "MetricNamespace": "ELKStatus",
                 "MetricName": "ELKStatusNumberOfNodes"
             }
@@ -1346,6 +1388,40 @@
     }
   },
 
+        "ELKIndexBackupAlarm": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "This will trigger when Http Responce Code of the smapshot curl is more than 399. ",
+                "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKIndexBackupAlarm"] ] },
+                "MetricName": "ELKIndexBackupExitCode",
+                "Namespace": "ELKStatus",
+                "Statistic": "Average",
+                "Period": "86400",
+                "EvaluationPeriods": "1",
+                "Threshold": "399",
+                "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "ComparisonOperator": "GreaterThanThreshold"
+            }
+        },
+        "ELKSnapshotAlarm": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "This will trigger when snapshot exitcode is greater than 0. ",
+                "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKSnapshotAlarm"] ] },
+                "MetricName": "ELKSnapshotExitCode",
+                "Namespace": "ELKStatus",
+                "Statistic": "Average",
+                "Period": "86400",
+                "EvaluationPeriods": "1",
+                "Threshold": "0",
+                "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
+                "ComparisonOperator": "GreaterThanThreshold"
+            }
+        },
         "ELKNotGreenAlarm": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
@@ -1353,7 +1429,7 @@
                 "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKNotGreenAlarm"] ] },
                 "MetricName": "ELKStatusNotGreen",
                 "Namespace": "ELKStatus",
-                "Statistic": "SampleCount",
+                "Statistic": "Average",
                 "Period": "60",
                 "EvaluationPeriods": "1",
                 "Threshold": "1",
@@ -1371,7 +1447,7 @@
                 "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKNumberOfNodesAlarm"] ] },
                 "MetricName": "ELKStatusNumberOfNodes",
                 "Namespace": "ELKStatus",
-                "Statistic": "SampleCount",
+                "Statistic": "Average",
                 "Period": "60",
                 "EvaluationPeriods": "1",
                 "Threshold": "1",

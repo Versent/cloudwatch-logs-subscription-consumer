@@ -929,7 +929,7 @@
                   "#!/bin/bash -xe\n\n",
                   "#Healtch checker. Should run every minute via crontab\n",
                   "date=`date --iso-8601=seconds`\n",
-                  "curl -s http://localhost:9200/_cluster/health | sed \"s/^/$date /\" >> /var/log/elasticsearch/elasticsearch-health.log\n",
+                  "curl -s http://localhost:9200/_cluster/health | sed \"s/^/$date /\" | sed 's/green/1/' | sed 's/yellow/2/' | sed 's/red/3/' >> /var/log/elasticsearch/elasticsearch-health.log\n",
                   "echo '' >> /var/log/elasticsearch/elasticsearch-health.log\n",
                   "\n"
                   ]]},
@@ -1334,10 +1334,10 @@
     "Type": "AWS::Logs::MetricFilter",
     "Properties": {
         "LogGroupName": { "Fn::Join" : ["", [{"Ref": "TagEnvironment"},"#",{"Ref": "TagEngagement"},".elk#elasticsearch-health.log"]]},
-        "FilterPattern": "{$.status = \"green\" }",
+        "FilterPattern": "{$.status = * }",
         "MetricTransformations": [
             {
-                "MetricValue": "1",
+                "MetricValue": "$.status",
                 "MetricNamespace": "ELKStatus",
                 "MetricName": "ELKStatusNotGreen"
             }
@@ -1434,9 +1434,8 @@
                 "EvaluationPeriods": "1",
                 "Threshold": "1",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "ComparisonOperator": "LessThanThreshold"
+                "ComparisonOperator": "GreaterThanThreshold"
             }
         },
 
@@ -1452,7 +1451,6 @@
                 "EvaluationPeriods": "1",
                 "Threshold": "1",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "LessThanOrEqualToThreshold"
             }
@@ -1466,7 +1464,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "RootBytesPercentFree",
         "Namespace" : "DiskSpace",
@@ -1489,7 +1486,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "HomeBytesPercentFree",
         "Namespace" : "DiskSpace",
@@ -1512,7 +1508,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarBytesPercentFree",
         "Namespace" : "DiskSpace",
@@ -1535,7 +1530,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarLogBytesPercentFree",
         "Namespace" : "DiskSpace",
@@ -1558,7 +1552,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarLogAuditBytesPercentFree",
         "Namespace" : "DiskSpace",
@@ -1581,7 +1574,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "ELKBytesPercentFree",
         "Namespace" : "DiskSpace",
@@ -1604,7 +1596,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "TmpBytesPercentFree",
         "Namespace" : "DiskSpace",

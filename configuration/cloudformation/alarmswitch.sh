@@ -20,3 +20,5 @@ aws cloudwatch describe-alarms "--alarm-name-prefix=$alarmprefix" --query Metric
 echo '}' >> alarms.json
 
 aws cloudwatch $1 --cli-input-json file://alarms.json
+
+aws cloudwatch describe-alarms "--alarm-name-prefix=$alarmprefix" --query 'MetricAlarms[].[ActionsEnabled,AlarmName]'

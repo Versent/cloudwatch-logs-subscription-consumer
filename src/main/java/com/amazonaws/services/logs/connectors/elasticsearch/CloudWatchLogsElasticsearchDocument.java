@@ -16,7 +16,7 @@ package com.amazonaws.services.logs.connectors.elasticsearch;
 
 import java.util.Map;
 
-import org.elasticsearch.common.lang3.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.amazonaws.services.logs.subscriptions.CloudWatchLogsEvent;
 import com.amazonaws.util.json.JSONException;

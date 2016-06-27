@@ -28,8 +28,7 @@ import com.amazonaws.services.logs.subscriptions.CloudWatchLogsSubscriptionTrans
 import com.amazonaws.util.json.JSONException;
 
 import static com.amazonaws.services.logs.connectors.elasticsearch.MapperTypeSanitizer.sanitizeMapperType;
-
-/**
+ /**
  * Transforms CloudWatchLogsEvent records to ElasticsearchObject records.
  */
 public class ElasticsearchTransformer extends CloudWatchLogsSubscriptionTransformer<ElasticsearchObject> {

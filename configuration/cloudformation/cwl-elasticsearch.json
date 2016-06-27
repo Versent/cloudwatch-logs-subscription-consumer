@@ -826,6 +826,7 @@
                   "| grep instanceId ",
                   "| awk -F\\\" '{print $4}')",
                   "\" >> /etc/elasticsearch/elasticsearch.yml && ",
+                  "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml &&",
                   "echo \"",
                   "node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null ",
                   "| grep availabilityZone ",
@@ -835,9 +836,9 @@
               },
               "03_installESPlugins": {
                 "command": { "Fn::Join" : ["", [
-                  "/usr/share/elasticsearch/bin/plugin -install elasticsearch/elasticsearch-cloud-aws/", { "Ref": "AWSCloudPluginVersion" } ,
+                  "/usr/share/elasticsearch/bin/plugin install -b cloud-aws" ,
                   " && ",
-                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf/1.0"
+                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf"
                 ]]}
               },
               "04_nginxAuthConfig": {
@@ -861,7 +862,7 @@
                 "cwd": "~"
               },
               "06_startKibana4": {
-                "command": { "Fn::Join" : ["", [ "{ nohup ./",{ "Ref" :"Kibana4Filename"},"/bin/kibana > /dev/null 2>&1 & } && disown -h %1"]]},
+                "command": "/etc/init.d/kibana start",
                 "cwd": "~"
               },
               "07_getPipAndCurator": {
@@ -1128,14 +1129,17 @@
           "#Get elasticsearch RPM\n",
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
           "yum install -y ",{ "Ref" :"ElasticSearchFilename"} ,".rpm\n",
+          "/etc/init.d/elasticsearch restart\n",
 
           "# KCL and config files\n",
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip .\n",
           "unzip ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip\n",
 
-          "# Get Kibana 4\n",
-          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana4Filename"},".tar.gz .\n",
-          "tar -xf ",{"Ref": "Kibana4Filename"},".tar.gz\n",
+          "# (OLD, now switched to rpm based install for kibana ) Get Kibana 4\n",
+          "#aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana4Filename"},".tar.gz .\n",
+          "#tar -xf ",{"Ref": "Kibana4Filename"},".tar.gz\n",
+          "wget https://download.elastic.co/kibana/kibana/",{"Ref": "Kibana4Filename"},".rpm\n",
+          "rpm -ivh ",{"Ref": "Kibana4Filename"},".rpm\n",
 
           "# Config\n",
           "cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
@@ -1145,15 +1149,18 @@
           "freemem=$(free -m | grep Mem | awk '{ printf \"%1.0f\\n\", 0.6*$2; }')",
           " && sed -i \"s/#ES_HEAP_SIZE=.*/ES_HEAP_SIZE=$(echo $freemem)m/g\" /etc/sysconfig/elasticsearch\n",
 
-          "# Get Kibana 3\n",
-          "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana3Filename"},".zip .\n",
-          "unzip ",{"Ref": "Kibana3Filename"},".zip\n",
-          "mkdir -p /usr/share/nginx/html/kibana3\n",
-          "mv ",{"Ref": "Kibana3Filename"},"/* /usr/share/nginx/html/kibana3\n",
-          "sed -i 's/elasticsearch:.*/elasticsearch: \"http:\\/\\/\" + window.location.hostname,/g' /usr/share/nginx/html/kibana3/config.js || error_exit \"Failed to update Kibana 3 config\"\n",
+          "#Fix kopf location \n",
+          "sed -i '/elasticsearch_root_path/ s#\"\"#\"/es\"#' /usr/share/elasticsearch/plugins/kopf/_site/kopf_external_settings.json\n",
 
-          "# Add static Kibana 3 dashboards\n",
-          "cp -f ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/kibana/* /usr/share/nginx/html/kibana3/app/dashboards/ || error_exit \"Failed to copy the Kibana 3 static dashboards\" \n",
+          "## Get Kibana 3\n",
+          "#aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana3Filename"},".zip .\n",
+          "#unzip ",{"Ref": "Kibana3Filename"},".zip\n",
+          "#mkdir -p /usr/share/nginx/html/kibana3\n",
+          "#mv ",{"Ref": "Kibana3Filename"},"/* /usr/share/nginx/html/kibana3\n",
+          "#sed -i 's/elasticsearch:.*/elasticsearch: \"http:\\/\\/\" + window.location.hostname,/g' /usr/share/nginx/html/kibana3/config.js || error_exit \"Failed to update Kibana 3 config\"\n",
+
+          "## Add static Kibana 3 dashboards\n",
+          "#cp -f ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/kibana/* /usr/share/nginx/html/kibana3/app/dashboards/ || error_exit \"Failed to copy the Kibana 3 static dashboards\" \n",
 
           "# Update Elasticsearch index templates\n",
           "sed -i '5i\\ \\ \\ \\ \\ \\ \"index.number_of_replicas\" : ", { "Ref": "ElasticsearchReplicas" } ,",' /etc/elasticsearch/templates/cwl_template.json || error_exit \"Failed update cwl_template.json\"\n",
@@ -1615,13 +1622,9 @@
   },
 
   "Outputs" : {
-    "Kibana3" : {
-      "Description" : "Kibana 3 (Includes Sample Dashboards)",
-      "Value" :  {"Fn::Join": ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/kibana3/#"]]}
-    },
     "Kibana4" : {
       "Description" : "Kibana 4",
-      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/kibana4/#"]]}
+      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/"]]}
     },
     "Elasticsearch" : {
       "Description" : "Elasticsearch API",
@@ -1629,7 +1632,7 @@
     },
     "Kopf" : {
       "Description" : "Kopf Admin Tool",
-      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/_plugin/kopf"]]}
+      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/kopf/"]]}
     },
     "KinesisARN" : {
       "Description" : "Use this ARN to point the subscription filters to",

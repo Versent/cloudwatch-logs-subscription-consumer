@@ -246,7 +246,7 @@
     "Kibana4Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
       "Type": "String",
-      "Default": "kibana-4.1.6-linux-x64"
+      "Default": "kibana-4.5.1-1.x86_64"
     },
     "Kibana3Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .zip",
@@ -256,12 +256,7 @@
     "ElasticSearchFilename": {
       "Description": "The ElasticSearch rpm filename in S3. No extention pleaase. The real file ends with .rpm ",
       "Type": "String",
-      "Default": "elasticsearch-1.7.3.noarch"
-    },
-    "AWSCloudPluginVersion": {
-      "Description": "The ElasticSearch plugin aws-cloud need to match es version. For example, for es 1.7.x, plugin version is 2.7.1",
-      "Type": "String",
-      "Default": "2.7.1"
+      "Default": "elasticsearch-2.3.3"
     },
 
     "RetentionDays" : {

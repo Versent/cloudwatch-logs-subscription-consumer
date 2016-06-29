@@ -47,8 +47,10 @@ public class ElasticsearchTransformer extends CloudWatchLogsSubscriptionTransfor
             // convert the log event to an Elasticsearch document
             CloudWatchLogsElasticsearchDocument document = new CloudWatchLogsElasticsearchDocument(record);
 
+            String OWNER = document.getOwner();
+
             // daily indexes are used for bulk expiry
-            String index = INDEX_NAME_PREFIX + DAY_SUFFIX_FORMATTER.print(document.getTimestamp());
+            String index = INDEX_NAME_PREFIX + DAY_SUFFIX_FORMATTER.print(document.getTimestamp()) + "-" + OWNER;
 
             String type = sanitizeMapperType(document.getLogGroup());
             String id = document.getId();

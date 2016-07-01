@@ -16,6 +16,18 @@
               "@id": {
                   "type": "string"
               },
+              "dstport": {
+                  "type": "string"
+              },
+              "srcport": {
+                  "type": "string"
+              },
+              "account_id": {
+                  "type": "string"
+              },
+              "protocol": {
+                  "type": "string"
+              },
               "@timestamp": {
                   "type": "date",
                   "doc_values": true

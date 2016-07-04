@@ -16,6 +16,9 @@
               "@id": {
                   "type": "string"
               },
+              "apiVersion": {
+                  "type": "string"
+              },
               "dstport": {
                   "type": "string"
               },

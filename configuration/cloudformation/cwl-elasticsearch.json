@@ -1161,7 +1161,7 @@
           "/etc/elasticsearch/inits3backup.sh\n",
           "# Set cron for log consumer, once a hour\n",
           "crontab -l > snapcron\n",
-          "echo \"10 * * * * /etc/elasticsearch/startLogConsumer.sh >> snapcron && crontab snapcron && rm -f snapcron\n",
+          "echo \"10 * * * * /etc/elasticsearch/startLogConsumer.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
           "# Set cron for elasticsearch healths\n",
           "crontab -l > snapcron\n",
           "echo \"* * * * * /etc/elasticsearch/health.sh\" >> snapcron && crontab snapcron && rm -f snapcron\n",
@@ -1609,15 +1609,15 @@
   "Outputs" : {
     "Kibana4" : {
       "Description" : "Kibana 4",
-      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/"]]}
+      "Value" :  { "Fn::Join" : ["",["https://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/"]]}
     },
     "Elasticsearch" : {
       "Description" : "Elasticsearch API",
-      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/?pretty"]]}
+      "Value" :  { "Fn::Join" : ["",["https://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/es/?pretty"]]}
     },
     "Kopf" : {
       "Description" : "Kopf Admin Tool",
-      "Value" :  { "Fn::Join" : ["",["http://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/kopf/"]]}
+      "Value" :  { "Fn::Join" : ["",["https://TU-Logs-",{"Ref": "BuildId"},".",{"Ref": "DNSDomain" }, "/kopf/"]]}
     },
     "KinesisARN" : {
       "Description" : "Use this ARN to point the subscription filters to",

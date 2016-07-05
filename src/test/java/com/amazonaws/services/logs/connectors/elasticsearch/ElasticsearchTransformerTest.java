@@ -57,11 +57,11 @@ public class ElasticsearchTransformerTest {
         assertEquals("49545295115971876468408574808414755329919666212443258898", elasticsearchDocuments.get(0).getId());
         assertEquals("49545295115971876468408574808465530214343480843939348498", elasticsearchDocuments.get(1).getId());
 
-        assertEquals("cwl-2015.01.13-123456789012", elasticsearchDocuments.get(0).getIndex());
-        assertEquals("cwl-2015.01.13-123456789012", elasticsearchDocuments.get(1).getIndex());
+        assertEquals("cwl-2015.01.13-123456789012-apache/access.log", elasticsearchDocuments.get(0).getIndex());
+        assertEquals("cwl-2015.01.13-123456789012-apache/access.log", elasticsearchDocuments.get(1).getIndex());
 
-        assertEquals("Apache/access.log", elasticsearchDocuments.get(0).getType());
-        assertEquals("Apache/access.log", elasticsearchDocuments.get(1).getType());
+        assertEquals("apache/access.log", elasticsearchDocuments.get(0).getType());
+        assertEquals("apache/access.log", elasticsearchDocuments.get(1).getType());
 
         JsonNode sourceNode;
 
@@ -119,11 +119,11 @@ public class ElasticsearchTransformerTest {
         assertEquals("49545295115971876468408574808465530214343480843939348498", elasticsearchDocuments.get(0).getId());
         assertEquals("49545295115971876468408574808465530214343150403450640305", elasticsearchDocuments.get(1).getId());
 
-        assertEquals("cwl-2015.01.13-123456789012", elasticsearchDocuments.get(0).getIndex());
-        assertEquals("cwl-2015.01.13-123456789012", elasticsearchDocuments.get(1).getIndex());
+        assertEquals("cwl-2015.01.13-123456789012-cloudtrail", elasticsearchDocuments.get(0).getIndex());
+        assertEquals("cwl-2015.01.13-123456789012-cloudtrail", elasticsearchDocuments.get(1).getIndex());
 
-        assertEquals("CloudTrail", elasticsearchDocuments.get(0).getType());
-        assertEquals("CloudTrail", elasticsearchDocuments.get(1).getType());
+        assertEquals("cloudtrail", elasticsearchDocuments.get(0).getType());
+        assertEquals("cloudtrail", elasticsearchDocuments.get(1).getType());
 
         JsonNode sourceNode;
 
@@ -179,11 +179,11 @@ public class ElasticsearchTransformerTest {
         assertEquals("49545295115971876468408574808414755329919666212443258898", elasticsearchDocuments.get(0).getId());
         assertEquals("49545295115971876468408574808465530214343150403450640305", elasticsearchDocuments.get(1).getId());
 
-        assertEquals("cwl-2015.01.13-123456789012", elasticsearchDocuments.get(0).getIndex());
-        assertEquals("cwl-2015.01.13-123456789012", elasticsearchDocuments.get(1).getIndex());
+        assertEquals("cwl-2015.01.13-123456789012-/aws/lambda/helloworld", elasticsearchDocuments.get(0).getIndex());
+        assertEquals("cwl-2015.01.13-123456789012-/aws/lambda/helloworld", elasticsearchDocuments.get(1).getIndex());
 
-        assertEquals("/aws/lambda/HelloWorld", elasticsearchDocuments.get(0).getType());
-        assertEquals("/aws/lambda/HelloWorld", elasticsearchDocuments.get(1).getType());
+        assertEquals("/aws/lambda/helloworld", elasticsearchDocuments.get(0).getType());
+        assertEquals("/aws/lambda/helloworld", elasticsearchDocuments.get(1).getType());
 
         JsonNode sourceNode;
 

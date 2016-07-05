@@ -979,9 +979,8 @@
               "/etc/elasticsearch/s3backup.sh": {
                 "content": { "Fn::Join" : ["", [
                   "#!/bin/bash -x\n\n",
-                  "#indiceslist=`curl -s http://localhost:9200/_cat/indices | awk '{print $3}'`\n",
                   "yesterday=`date +%Y.%m.%d -d 'yesterday'`\n",
-                  "indiceslist=cwl-$yesterday\n",
+                  "indiceslist=`curl -s http://localhost:9200/_cat/indices | awk '{print $3}' | grep $yesterday`\n",
                   "for index in $indiceslist; do list=\"$list,$index\"; done\n",
                   "list=`echo $list | sed 's/^,//'`\n",
                   "date=`date +%Y.%m.%d`\n",

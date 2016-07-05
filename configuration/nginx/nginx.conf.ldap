@@ -22,6 +22,9 @@ http {
         require valid_user;
         error_log /var/log/nginx/debug.log debug;
     }
+    auth_ldap_cache_enabled on;
+    auth_ldap_cache_expiration_time 3600000;
+    auth_ldap_cache_size 1000;
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
 

@@ -99,6 +99,11 @@
       "Type": "String",
       "Default": ""
     },
+    "LDAPGroup": {
+      "Description": "Full Group DN members of which will be allowed via LDAP",
+      "Type": "String",
+      "Default": ""
+    },
     "LDAPUsersDN": {
       "Description": "The OU where the LDAP users can be found",
       "Type": "String",
@@ -844,6 +849,7 @@
                        "sed -i 's/__LDAPSRV__/",{ "Ref" :"LDAPServer"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
                        "sed -i 's/__LDAPUSERDN__/",{ "Ref" :"LDAPUsersDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
                        "sed -i 's/__LDAPBASEDN__/",{ "Ref" :"LDAPBaseDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
+                       "sed -i 's/__LDAPGROUP__/",{ "Ref" :"LDAPGroup"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
                        "sed -i 's/__LDAPBINDDN__/",{ "Ref" :"LDAPBindUser"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
                        "sed -i 's/__LDAPBINDPWD__/",{ "Ref" :"LDAPBindPass"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
                        "/bin/cp -rf ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap /etc/nginx/nginx.conf"]]},
@@ -1158,7 +1164,9 @@
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
           "yum install -y ",{ "Ref" :"ElasticSearchFilename"} ,".rpm\n",
 
-          "# KCL and config files\n",
+          "sudo systemctl daemon-reload\n",
+          "systemctl enable elasticsearch.service\n",
+
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip .\n",
           "unzip ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip\n",
           "# (OLD, now switched to rpm based install for kibana ) Get Kibana 4\n",
@@ -1171,6 +1179,8 @@
           "cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
           "    --region ", { "Ref" : "AWS::Region" }, " -v\n",
 
+          "chown -R elasticsearch:elasticsearch /etc/elasticsearch/templates\n",
+          "service elasticsearch restart\n",
           "service nginx restart\n",
           "# Allow 60% of total mem as heap size for cluster \n",
           "freemem=$(free -m | grep Mem | awk '{ printf \"%1.0f\\n\", 0.6*$2; }')",

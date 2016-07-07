@@ -1164,7 +1164,7 @@
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
           "yum install -y ",{ "Ref" :"ElasticSearchFilename"} ,".rpm\n",
 
-          "sudo systemctl daemon-reload\n",
+          "systemctl daemon-reload\n",
           "systemctl enable elasticsearch.service\n",
 
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip .\n",

@@ -1,10 +1,36 @@
 #!/bin/bash -ex
-
+ls -la
 export tgregion=ap-southeast-2
 export AWS_DEFAULT_REGION=$tgregion
 export AWS_REGION=$tgregion
 export httpproxyhost='proxy.cloudops.tu-aws.com'
-export ami=$amiid
+
+
+
+CloudWatchConsumerCompiledZip="cloudwatch-logs-subscription-consumer-2.2.1"
+HttpProxyHost="proxy.cloudops.tu-aws.com"
+#TEMP, include maven install and build the java app here
+#
+mavenversion=3.3.9
+export MAVEN_OPTS="-Dhttps.proxyHost=$HttpProxyHost -Dhttps.proxyPort=3128 -Xmx512m"
+if [ ! -f apache-maven-$mavenversion-bin.tar.gz ]; then 
+  wget http://mirror.ventraip.net.au/apache/maven/maven-3/$mavenversion/binaries/apache-maven-$mavenversion-bin.tar.gz
+  tar -xzvf apache-maven-$mavenversion-bin.tar.gz
+fi  
+
+if [ -d target ]; then rm -rf target; fi
+if [ ! -f target/$CloudWatchConsumerCompiledZip-cfn.zip ]; then 
+  #check if kinesis-connector is present
+  if [ ! -f ~/.m2/repository/com/amazonaws/amazon-kinesis-connectors/1.2.0/amazon-kinesis-connectors-1.2.0.jar ]; then
+     echo "Cannot find amazon-kinesis-connectors.jar, please run the job elk-compile-kinesis-jar first!"
+     exit 1
+  fi
+  rm -f configuration/cloudformation/*.rpm
+  apache-maven-3.3.9/bin/mvn clean install -Dgpg.skip=true
+   
+fi
+
+# END TMP
 
 cd configuration/cloudformation
 #Workaround!!!
@@ -12,10 +38,9 @@ cd configuration/cloudformation
 sed  '/"CrossLogDestination"/,/"CloudWatchLogsKinesisPolicy"/{/CloudWatchLogsKinesisPolicy/!d}' cwl-elasticsearch.json > cwl-elasticsearch-1.json
 
 
-HttpProxyHost="proxy.cloudops.tu-aws.com"
 KeyName="coreservices-$Environment-infra"
 ManagedServicesTopicARN="arn:aws:sns:ap-southeast-2:770806701093:CloudOPS-Foundation-Production"
-ELBSSLCertificate="arn:aws:iam::770806701093:server-certificate/star.cloudops.tu-aws.com"
+ELBSSLCertificate="arn:aws:iam::770806701093:server-certificate/cloudops.tu-aws.com"
 S3bucketBackup="cloudops-$Environment.backup.transurban.com"
 S3bucketSource="cloudops-$Environment.files.transurban.com"
 TagEnvironment="prod"
@@ -38,16 +63,23 @@ natsg=`aws ec2 describe-security-groups --filters Name=vpc-id,Values=$vpcid --qu
 #extract the DNS domain name
 DNSDomain=$(aws route53 get-hosted-zone --id $DNSZoneId --query 'HostedZone.Name' --output text | rev | cut -c 2- | rev)
 
-AllowedIpSource="0.0.0.0/0"
-AMIID="ami-b9b09cda"
+export elballowedrange1='10.0.0.0/8'
+export elballowedrange2='172.16.0.0/12'
+export elballowedrange3='192.168.0.0/16'
+#VPN Range
+export elballowedrange4='10.153.16.128/26'
+export elbexternalallowedrange='103.3.236.11/32'
+
+AMIID=$amiid
 AWSCloudPluginVersion="2.7.1"
 BuildId=$BUILD_NUMBER
-CloudWatchConsumerCompiledZip="cloudwatch-logs-subscription-consumer-1.2.0"
+
 ClusterSize="2"
 CrossAccountID="018578619640"
 DefaultSecurityGroup=$defaultsg
 HttpProxyPort=3128
-ElasticSearchFilename="elasticsearch-1.7.3.noarch"
+ElasticSearchVersion=2.3.3
+ElasticSearchFilename="elasticsearch-$ElasticSearchVersion"
 ElasticsearchReplicas=1
 ElasticsearchShards=5
 
@@ -57,7 +89,7 @@ IndexBackupRetentionDays=365
 InstanceType="m4.large"
 
 Kibana3Filename="kibana-3.1.2"
-Kibana4Filename="kibana-4.1.6-linux-x64"
+Kibana4Filename="kibana-4.5.1-1.x86_64"
 KinesisShards=1
 LogFormat="Custom"
 LogGroupNameRegex=''
@@ -74,7 +106,7 @@ SnapRetentionDays=14
 SubnetA=$subnetprivatea
 SubnetB=$subnetprivateb
 SubscriptionFilterPattern=''
-TagApplication="ELK"
+TagApplication="ELK2"
 
 TagEnvironmentNumber=1
 TagOwner="its@versent.com.au"
@@ -82,6 +114,18 @@ TagRole="app"
 TagService="logging"
 TagTenant="Transurban"
 VPC=$vpcid
+
+cd ../../
+if [ ! -f $Kibana4Filename.rpm ]; then wget https://download.elastic.co/kibana/kibana/$Kibana4Filename.rpm; fi
+if [ ! -f elasticsearch-$ElasticSearchVersion.rpm ]; then wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/rpm/elasticsearch/$ElasticSearchVersion/elasticsearch-$ElasticSearchVersion.rpm; fi
+aws s3 cp target/$CloudWatchConsumerCompiledZip-cfn.zip s3://$S3bucketSource/$S3DownloadPath/
+aws s3 cp $Kibana4Filename.rpm s3://$S3bucketSource/$S3DownloadPath/
+aws s3 cp elasticsearch-$ElasticSearchVersion.rpm s3://$S3bucketSource/$S3DownloadPath/
+cd configuration/cloudformation
+aws s3 cp cwl-elasticsearch-1.json s3://$S3bucketSource/$S3DownloadPath/
+aws s3 ls s3://$S3bucketSource/$S3DownloadPath/
+
+
 
 #Create the loggroup for ELK state in advance. Fail is Ok if the group already exists
 set +e
@@ -99,11 +143,13 @@ sed -ie 's/^ *//' cwl-elasticsearch-1.json
 echo "Start Create Stack..."
 aws cloudformation create-stack --capabilities CAPABILITY_IAM --disable-rollback \
   --stack-name "$elkstackname" \
-  --template-body file://cwl-elasticsearch-1.json \
+  --template-url https://s3-$AWS_REGION.amazonaws.com/$S3bucketSource/$S3DownloadPath/cwl-elasticsearch-1.json \
   --parameters $httpproxy \
-UsePreviousValue=true,ParameterKey=AllowedIpSource,ParameterValue=$AllowedIpSource \
+UsePreviousValue=true,ParameterKey=ELBAllowedRange1,ParameterValue=$elballowedrange1 \
+UsePreviousValue=true,ParameterKey=ELBAllowedRange2,ParameterValue=$elballowedrange2 \
+UsePreviousValue=true,ParameterKey=ELBAllowedRange3,ParameterValue=$elballowedrange3 \
+UsePreviousValue=true,ParameterKey=ELBAllowedRange4,ParameterValue=$elballowedrange4 \
 UsePreviousValue=true,ParameterKey=AMIID,ParameterValue=$AMIID \
-UsePreviousValue=true,ParameterKey=AWSCloudPluginVersion,ParameterValue=$AWSCloudPluginVersion \
 UsePreviousValue=true,ParameterKey=BuildId,ParameterValue=$BuildId \
 UsePreviousValue=true,ParameterKey=CloudWatchConsumerCompiledZip,ParameterValue=$CloudWatchConsumerCompiledZip \
 UsePreviousValue=true,ParameterKey=ClusterSize,ParameterValue=$ClusterSize \

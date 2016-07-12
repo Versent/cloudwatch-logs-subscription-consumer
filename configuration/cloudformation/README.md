@@ -25,60 +25,9 @@ The cloudformation template will create:
 5. Scripts running from crontab to do Snapshots/backup/housekeeping
 
 ## Running the stack
-The stack can be run manually via AWS console, or via aws-cli.
+A Jenkins job can be used to spinup the stack. Jhe job can be created based on cwl-elasticsearch.sh script in the folder.
+It needs 2 parameters - amiid and Environment.
 
-The one running ATM has been run manually using the following parameters:
-
-```
-AllowedIpSource	0.0.0.0/0
-AMIID	ami-b9b09cda
-AWSCloudPluginVersion	2.7.1
-BuildId	3
-CloudWatchConsumerCompiledZip	cloudwatch-logs-subscription-consumer-1.2.0
-ClusterSize	2
-CrossAccountID	018578619640
-DefaultSecurityGroup	sg-98c4cffd
-DNSDomain	cloudops.np.tu-aws.com
-DNSZoneId	Z34K54PJ412ETK
-ElasticSearchFilename	elasticsearch-1.7.3.noarch
-ElasticsearchReplicas	1
-ElasticsearchShards	5
-ELBSSLCertificate	arn:aws:iam::300579097309:server-certificate/cloudopsnonprod.tu-aws.com
-ESVolumeSize	200
-ESVolumeSnapshotId	
-HttpProxyHost	proxy.cloudops.np.tu-aws.com
-HttpProxyPort	3128
-IndexBackupRetentionDays	365
-InstanceType	m4.large
-KeyName	coreservices-nonprod-infra
-Kibana3Filename	kibana-3.1.2
-Kibana4Filename	kibana-4.1.6-linux-x64
-KinesisShards	1
-LogFormat	Custom
-LogGroupNameRegex	
-ManagedServicesTopicARN	arn:aws:sns:ap-southeast-2:300579097309:CloudOPS-Foundation-NonProduction
-MonitorStack	true
-NATSecurityGroup	sg-43584e26
-NginxPassword	****
-NginxUsername	nginx
-RetentionDays	31
-S3bucketBackup	cloudops-nonprod.backup.transurban.com
-S3bucketSource	cloudops-nonprod.files.transurban.com
-S3DownloadPath	CWL-consumer
-S3IndexBackupPath	ELK-index
-SnapRetentionDays	14
-SubnetA	subnet-12a2ee77
-SubnetB	subnet-341b6e43
-SubscriptionFilterPattern	
-TagApplication	ELK
-TagEnvironment	dev
-TagEnvironmentNumber	1
-TagOwner	its@versent.com.au
-TagRole	app
-TagService	logging
-TagTenant	Transurban
-VPC	vpc-817411e4
-``` 
 
 
 ## Issues

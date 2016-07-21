@@ -1478,7 +1478,7 @@
                 "Statistic": "Average",
                 "Period": "600",
                 "EvaluationPeriods": "1",
-                "Threshold": "1",
+                "Threshold": "1.5",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"

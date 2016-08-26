@@ -1192,7 +1192,7 @@
           "\n",
           "/etc/elasticsearch/startLogConsumer.sh\n",
           "# Set hourly cron for curator\n",
-          "crontab -l > mycron\n\n",
+          "#crontab -l > mycron\n\n",
           "echo \"0 * * * * /usr/local/bin/curator --host localhost --port 9200 --debug delete indices --prefix \\\"cwl-\\\" --time-unit days --older-than ",
           { "Ref" : "RetentionDays" },
           " --timestring \\\"\\%Y.\\%m.\\%d\\\"\" >> mycron || error_exit \"Failed to create cron file\" \n",

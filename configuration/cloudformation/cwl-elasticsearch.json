@@ -114,6 +114,16 @@
       "Type": "String",
       "Default": ""
     },
+    "DSADescription": {
+      "Description": "Description of this instance for DSM",
+      "Type": "String",
+      "Default": "ELK Stack"
+    },
+    "DSAPolicyId": {
+      "Description": "Trend Micro Deep Security policy id assigned to this instance",
+      "Type": "String",
+      "Default": "5"
+    },
     "VPC": {
       "Description": "The ID of the VPC we're launching into",
       "Type": "AWS::EC2::VPC::Id"
@@ -1285,6 +1295,14 @@
           "sed -i 's/=HTTPS_PROXY/=\\$HTTPS_PROXY/' /etc/systemd/system/diamond.service\n",
           "sed -i 's/=HTTP_PROXY/=\\$HTTP_PROXY/' /etc/systemd/system/diamond.service\n",
           "systemctl daemon-reload\n",
+          "cat >/usr/local/etc/dsa_install.conf <<EOF\n",
+          "DSA_DESCRIPTION=\"", { "Ref": "DSADescription" }, "\"\n",
+          "DSA_POLICY_ID=", { "Ref": "DSAPolicyId" }, "\n",
+          "EOF\n",
+          "\n",
+          "# Install and activate Trend Micro Deep Security Agent\n",
+          "/usr/local/bin/dsa-activate.sh\n",
+          "\n",
           "systemctl enable diamond.service\n",
           "systemctl start diamond.service\n\n",
           "#bash -x /etc/subscribefilters.sh\n",

@@ -331,18 +331,6 @@
       "AllowedValues" : ["true", "false"]
     },
 
-    "LogFormat" : {
-      "Description": "Choose the format that best describes the type of logs in the selected log group",
-      "Type": "String",
-      "Default" : "Custom",
-      "AllowedValues" : ["AmazonVPCFlowLogs", "AWSLambda", "AWSCloudTrail", "Custom"]
-    },
-
-    "SubscriptionFilterPattern" : {
-      "Description": "Optional filter pattern for custom log formats - Use this only if LogFormat is set to Custom",
-      "Type": "String"
-    },
-
     "KinesisShards": {
       "Description": "Number of shards to create for the Kinesis subscription stream",
       "Type": "Number",
@@ -369,20 +357,13 @@
     "Constants" : {
       "S3DownloadPath"   : { "Value": "CWL-consumer" },
       "S3DownloadFile"   : { "Value": "cloudwatch-logs-subscription-consumer-1.2.0" }
-    },
-
-    "LogFormats" : {
-      "AmazonVPCFlowLogs" : { "Value": "[version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, bytes, start, end, action, log_status]" },
-      "AWSLambda": { "Value": "[timestamp=*Z, request_id=\"*-*\", event]" },
-      "AWSCloudTrail": { "Value": "" },
-      "Custom": { "Value": "" }
     }
+
   },
   
   "Conditions" : {
     "CreateCWLForStack" : {"Fn::Equals" : [{"Ref" : "MonitorStack"}, "true"]},
     "NoKeySpecified" : {"Fn::Equals" : [{"Ref" : "KeyName"}, ""]},
-    "CustomLogFormat": {"Fn::Equals" : [{"Ref" : "LogFormat"}, "Custom"]},
     "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]},
     "EnableAlarms": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "ManagedServicesTopicARN" }, ""]}]},
     "LDAPAuth": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "LDAPServer" }, ""]}]}

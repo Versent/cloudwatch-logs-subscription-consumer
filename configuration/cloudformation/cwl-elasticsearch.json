@@ -14,8 +14,8 @@
       "Description" : "EC2 instance type for the Elasticsearch nodes",
       "Type" : "String",
       "Default" : "t2.medium",
-      "AllowedValues" : [ 
-        "t2.micro", 
+      "AllowedValues" : [
+        "t2.micro",
         "t2.small",
         "t2.medium",
         "t2.large",
@@ -24,36 +24,36 @@
         "m4.2xlarge",
         "m4.4xlarge",
         "m4.10clarge",
-        "m3.medium", 
-        "m3.large", 
-        "m3.xlarge", 
-        "m3.2xlarge", 
-        "c3.large", 
-        "c3.xlarge", 
-        "c3.2xlarge", 
-        "c3.4xlarge", 
-        "c3.8xlarge", 
-        "c4.large", 
-        "c4.xlarge", 
-        "c4.2xlarge", 
-        "c4.4xlarge", 
-        "c4.8xlarge", 
-        "r3.large", 
-        "r3.xlarge", 
-        "r3.2xlarge", 
-        "r3.4xlarge", 
-        "r3.8xlarge", 
-        "i2.xlarge", 
-        "i2.2xlarge", 
-        "i2.4xlarge", 
-        "i2.8xlarge", 
-        "d2.xlarge", 
-        "d2.2xlarge", 
-        "d2.4xlarge", 
-        "d2.8xlarge", 
-        "hi1.4xlarge", 
-        "hs1.8xlarge", 
-        "cr1.8xlarge", 
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge",
+        "d2.xlarge",
+        "d2.2xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge",
+        "hi1.4xlarge",
+        "hs1.8xlarge",
+        "cr1.8xlarge",
         "cc2.8xlarge"
        ],
       "ConstraintDescription" : "Must be a valid EC2 instance type"
@@ -345,6 +345,12 @@
       "MinValue" : "0"
     },
 
+    "CreateCrossLogDestination": {
+      "Description": "Create the cross log destination if `true`",
+      "Type": "String",
+      "Default": "true"
+    },
+
     "ElasticsearchReplicas": {
       "Description": "The number of replica shards (copies) that each primary Elasticsearch shard should have",
       "Type": "Number",
@@ -360,13 +366,14 @@
     }
 
   },
-  
+
   "Conditions" : {
     "CreateCWLForStack" : {"Fn::Equals" : [{"Ref" : "MonitorStack"}, "true"]},
     "NoKeySpecified" : {"Fn::Equals" : [{"Ref" : "KeyName"}, ""]},
     "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]},
     "EnableAlarms": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "ManagedServicesTopicARN" }, ""]}]},
     "LDAPAuth": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "LDAPServer" }, ""]}]}
+    "CreateCrossLogDestinationCondition": {"Fn::Equals": [{"Ref": "CreateCrossLogDestination"}, "true"]}
   },
 
   "Resources" : {
@@ -381,7 +388,7 @@
         "AttributeDefinitions" : [
           {
             "AttributeName" : "leaseKey",
-            "AttributeType" : "S"   
+            "AttributeType" : "S"
           }
         ],
         "KeySchema" : [
@@ -414,10 +421,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -430,7 +437,7 @@
           "Version": "2012-10-17",
           "Statement": [{
             "Effect": "Allow",
-            "Principal": { 
+            "Principal": {
                 "Service": { "Fn::Join": ["", ["logs.", { "Ref": "AWS::Region" } ,".amazonaws.com" ]]}
             },
             "Action": "sts:AssumeRole"
@@ -438,8 +445,10 @@
         }
       }
     },
+
     "CrossLogDestination" : {
       "Type" : "AWS::Logs::Destination",
+      "Condition": "CreateCrossLogDestinationCondition",
       "Properties" : {
         "DestinationName": { "Fn::Join" : [ "-", ["ELKCrossLogDestination",{"Ref": "BuildId"}]]},
         "RoleArn": { "Fn::GetAtt" : [ "CloudWatchLogsKinesisRole", "Arn" ] },
@@ -576,7 +585,7 @@
         "Roles": [ { "Ref": "ElasticsearchNodeRole" } ]
       }
     },
-    
+
     "ElasticsearchSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
@@ -584,11 +593,11 @@
         "GroupDescription" : "Enable Elasticsearch access",
         "SecurityGroupIngress" : [
           {
-            "IpProtocol" : "tcp", 
-            "FromPort" : "8080", 
+            "IpProtocol" : "tcp",
+            "FromPort" : "8080",
             "ToPort" : "8080",
             "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["ElasticsearchELB", "SourceSecurityGroup.OwnerAlias"]},
-            "SourceSecurityGroupId" : { "Ref" : "ElasticsearchELBSecurityGroup" } 
+            "SourceSecurityGroupId" : { "Ref" : "ElasticsearchELBSecurityGroup" }
           }
         ],
         "Tags": [
@@ -608,10 +617,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -621,8 +630,8 @@
       "Type" : "AWS::EC2::SecurityGroupIngress",
       "Properties" : {
         "GroupId" : { "Ref": "ElasticsearchSecurityGroup" },
-        "IpProtocol" : "tcp", 
-        "FromPort" : "9300", 
+        "IpProtocol" : "tcp",
+        "FromPort" : "9300",
         "ToPort" : "9399",
         "SourceSecurityGroupId" : { "Ref" : "ElasticsearchSecurityGroup" },
         "Tags": [
@@ -642,14 +651,14 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
-    }, 
+    },
 
     "ElasticsearchELBSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
@@ -680,10 +689,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -817,10 +826,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -834,8 +843,8 @@
             "commands" : {
               "00_copyNginxConfig": {
                 "command":
-                   { "Fn::If": [ 
-                     "LDAPAuth", 
+                   { "Fn::If": [
+                     "LDAPAuth",
                        { "Fn::Join" : ["", [{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx-ldap.sh ",{ "Ref" :"NginxSourceVersion"}," && ",
                        "sed -i 's/__LDAPSRV__/",{ "Ref" :"LDAPServer"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
                        "sed -i 's/__LDAPUSERDN__/",{ "Ref" :"LDAPUsersDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
@@ -876,9 +885,9 @@
                 ]]}
               },
               "04_nginxAuthConfig": {
-                "command": { "Fn::Join" : ["", [ 
-                  "htpasswd -c -b /etc/nginx/.htpasswd ", 
-                  { "Ref": "NginxUsername" }, " ", 
+                "command": { "Fn::Join" : ["", [
+                  "htpasswd -c -b /etc/nginx/.htpasswd ",
+                  { "Ref": "NginxUsername" }, " ",
                   { "Ref": "NginxPassword" }, "\n"
                  ]]}
               },
@@ -1070,7 +1079,7 @@
                   "Fn::If": [
                     "CreateCWLForStack",
                     {
-                      "enabled" : "true", 
+                      "enabled" : "true",
                       "ensureRunning" : "true",
                       "files" : [ "/etc/awslogs/awslogs.conf" ]
                     },
@@ -1087,7 +1096,7 @@
         "ImageId" : { "Ref" : "AMIID" },
         "InstanceType"   : { "Ref" : "InstanceType" },
         "SecurityGroups" : [
-             {"Ref" : "ElasticsearchSecurityGroup"}, 
+             {"Ref" : "ElasticsearchSecurityGroup"},
              {"Ref": "NATSecurityGroup"},
              {"Ref": "DefaultSecurityGroup"}
         ],
@@ -1104,7 +1113,7 @@
                 "Encrypted" : true,
                 "DeleteOnTermination": false,
                 "VolumeType" : "gp2"
-              }, 
+              },
               {
                 "VolumeSize" : {"Ref":"ESVolumeSize"},
                 "Encrypted" : true,
@@ -1112,7 +1121,7 @@
                 "VolumeType" : "gp2"
               }
             ]
-          } 
+          }
         } ],
         "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
           "#!/bin/bash -ex\n",

@@ -147,11 +147,6 @@
       "Description": "The Private Subnet Availability Zone B subnet ID for the ELB",
       "Type": "AWS::EC2::Subnet::Id"
     },
-    "TagOwner": {
-      "Description": "Owner of the stack",
-      "Type": "String",
-      "Default": "its@versent.com.au"
-    },
     "TagEnvironment": {
       "Description": "Name of the environment(dev, nonprod, prod, etc",
       "Type": "String",

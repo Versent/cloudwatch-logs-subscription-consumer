@@ -95,7 +95,6 @@ CFN_PARAMS="$( cat <<EOF_PARAMS
     { "ParameterKey": "TagApplication", "ParameterValue": "$TagApplication" },
     { "ParameterKey": "TagEnvironment", "ParameterValue": "$TagEnvironment" },
     { "ParameterKey": "TagEnvironmentNumber", "ParameterValue": "$TagEnvironmentNumber" },
-    { "ParameterKey": "TagOwner", "ParameterValue": "$TagOwner" },
     { "ParameterKey": "TagRole", "ParameterValue": "$TagRole" },
     { "ParameterKey": "TagService", "ParameterValue": "$TagService" },
     { "ParameterKey": "TagTenant", "ParameterValue": "$TagTenant" },

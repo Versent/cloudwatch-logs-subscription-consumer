@@ -47,7 +47,7 @@ ElasticsearchShards=5
 ESVolumeSize=200
 ESVolumeSnapshotId=''
 IndexBackupRetentionDays=365
-InstanceType="m4.large"
+InstanceType="r3.xlarge"
 
 Kibana3Filename="kibana-3.1.2"
 Kibana4Filename="kibana-4.5.1-1.x86_64"

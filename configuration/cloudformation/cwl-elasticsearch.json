@@ -1124,7 +1124,7 @@
           "echo getPipAndCurator\n",
           "pip install elasticsearch-curator\n",
 
-          "mkdir -p /var/awslogs/state",
+          "mkdir -p /var/awslogs/state\n",
 
           "chown -R elasticsearch:elasticsearch /etc/elasticsearch/templates\n",
           "systemctl restart elasticsearch\n",

@@ -5,6 +5,6 @@ DNSZoneId=Z1IQXR7V1TDWS7
 CrossAccountID="018578619640"
 AMIID='ami-2b9daa48'
 
-source configuration/env/common.sh
+source env/common.sh
 
 HttpProxyHost="proxy.cloudops.tu-aws.com"

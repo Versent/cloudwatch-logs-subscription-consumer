@@ -659,7 +659,7 @@
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange1" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange2" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange3" } },
-          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange4" } },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange4" } }
         ],
         "Tags": [
           {
@@ -829,24 +829,6 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "config" : {
-            "commands" : {
-              "00_copyNginxConfig": {
-                "command":
-                   { "Fn::If": [
-                     "LDAPAuth",
-                       { "Fn::Join" : ["", [{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx-ldap.sh ",{ "Ref" :"NginxSourceVersion"}," && ",
-                       "sed -i 's/__LDAPSRV__/",{ "Ref" :"LDAPServer"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPUSERDN__/",{ "Ref" :"LDAPUsersDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPBASEDN__/",{ "Ref" :"LDAPBaseDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPGROUP__/",{ "Ref" :"LDAPGroup"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPBINDDN__/",{ "Ref" :"LDAPBindUser"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPBINDPWD__/",{ "Ref" :"LDAPBindPass"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "/bin/cp -rf ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap /etc/nginx/nginx.conf"]]},
-                       { "Fn::Join" : ["", ["cp ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/nginx/nginx.conf /etc/nginx/nginx.conf" ]]}
-                  ]
-                }
-              }            },
-
             "files": {
               "/etc/elasticsearch/elasticsearch.yml" : {
                 "content" : { "Fn::Join" : ["", [
@@ -1007,18 +989,6 @@
 
             "services": {
               "sysvinit": {
-                "nginx": {
-                  "enabled": true,
-                  "ensureRunning": true,
-                  "files": [ "/etc/nginx/nginx.conf" ],
-                  "sources": [ "usr/share/nginx/html" ]
-                },
-                "elasticsearch": {
-                  "enabled": true,
-                  "ensureRunning": true,
-                  "files": [ "/etc/elasticsearch/elasticsearch.yml", "/etc/elasticsearch/logging.yml", "/etc/sysconfig/elasticsearch" ],
-                  "sources": [ "/usr/share/elasticsearch/bin" ]
-                },
                 "awslogs": {
                   "Fn::If": [
                     "CreateCWLForStack",
@@ -1103,16 +1073,18 @@
           "\n",
           "\n",
           "\n",
-          "cd ~\n",
+          "cd /tmp\n",
+
+          "aws s3 cp s3://", {"Ref": "S3bucketSource"}, "/", {"Ref": "S3DownloadPath"}, "/", {"Ref": "NginxLDAPConfigurationZip"}, " .\n",
+          "unzip ", {"Ref": "NginxLDAPConfigurationZip"}, "\n",
+
           "#Get elasticsearch RPM\n",
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
           "yum install -y ",{ "Ref" :"ElasticSearchFilename"} ,".rpm\n",
 
-          "systemctl daemon-reload\n",
-          "systemctl enable elasticsearch.service\n",
-
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip .\n",
           "unzip ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip\n",
+
           "# (OLD, now switched to rpm based install for kibana ) Get Kibana 4\n",
           "#aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana4Filename"},".tar.gz .\n",
           "#tar -xf ",{"Ref": "Kibana4Filename"},".tar.gz\n",
@@ -1131,12 +1103,25 @@
           "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml\n",
           "echo \" node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep availabilityZone | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
 
+          {"Fn::If": ["LDAPAuth", "export NGINX_LDAP=1\n", ""]},
+          "export DNSDomain='", {"Ref": "DNSDomain"}, "'\n",
+          "export S3bucketSource='", {"Ref": "S3bucketSource"}, "'\n",
+          "export LDAPServer='", {"Ref": "LDAPServer"}, "'\n",
+          "export LDAPUsersDN='", {"Ref": "LDAPUsersDN"}, "'\n",
+          "export LDAPBaseDN='", {"Ref": "LDAPBaseDN"}, "'\n",
+          "export LDAPGroup='", {"Ref": "LDAPGroup"}, "'\n",
+          "export LDAPBindUser='", {"Ref": "LDAPBindUser"}, "'\n",
+          "export LDAPBindPass='", {"Ref": "LDAPBindPass"}, "'\n",
+          "bash ./nginx/entrypoint.sh '", {"Ref": "NginxSourceVersion"}, "'\n",
+
+          "systemctl daemon-reload\n",
+          "systemctl start elasticsearch elasticsearch kibana\n",
+          "systemctl restart nginx\n",
+          "systemctl enable kibana elasticsearch nginx\n",
+
           "echo installESPlugins\n",
           "/usr/share/elasticsearch/bin/plugin install -b cloud-aws\n",
           "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf\n",
-
-          "echo startKibana4\n",
-          "systemctl start kibana && systemctl enable kibana\n",
 
           "echo getPipAndCurator\n",
           "pip install elasticsearch-curator\n",
@@ -1255,7 +1240,10 @@
           "EOF\n",
           "\n",
           "# Install and activate Trend Micro Deep Security Agent\n",
-          "/usr/local/bin/dsa-activate.sh\n",
+          "#/usr/local/bin/dsa-activate.sh\n",
+          "systemctl stop ds_agent\n",
+          "systemctl disable ds_agent\n",
+          "systemctl mask ds_agent\n",
           "\n",
           "systemctl enable diamond.service\n",
           "systemctl start diamond.service\n\n",

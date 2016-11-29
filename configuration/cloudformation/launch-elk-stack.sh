@@ -1,3 +1,10 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+dir="$(dirname "$0")"
+source "$dir/launch-stack.sh"
+
 #TEMP, include maven install and build the java app here
 #
 mavenversion=3.3.9

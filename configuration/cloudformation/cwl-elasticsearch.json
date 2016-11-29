@@ -1127,8 +1127,8 @@
           "mkdir -p /var/awslogs/state",
 
           "chown -R elasticsearch:elasticsearch /etc/elasticsearch/templates\n",
-          "service elasticsearch restart\n",
-          "service nginx restart\n",
+          "systemctl restart elasticsearch\n",
+
           "# Allow 60% of total mem as heap size for cluster \n",
           "freemem=$(free -m | grep Mem | awk '{ printf \"%1.0f\\n\", 0.6*$2; }')",
           " && sed -i \"s/#ES_HEAP_SIZE=.*/ES_HEAP_SIZE=$(echo $freemem)m/g\" /etc/sysconfig/elasticsearch\n",

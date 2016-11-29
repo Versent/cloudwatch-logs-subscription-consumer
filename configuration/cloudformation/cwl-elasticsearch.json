@@ -372,7 +372,7 @@
     "NoKeySpecified" : {"Fn::Equals" : [{"Ref" : "KeyName"}, ""]},
     "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]},
     "EnableAlarms": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "ManagedServicesTopicARN" }, ""]}]},
-    "LDAPAuth": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "LDAPServer" }, ""]}]}
+    "LDAPAuth": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "LDAPServer" }, ""]}]},
     "CreateCrossLogDestinationCondition": {"Fn::Equals": [{"Ref": "CreateCrossLogDestination"}, "true"]}
   },
 

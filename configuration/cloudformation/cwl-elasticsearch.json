@@ -286,7 +286,7 @@
     },
     "NginxConfigHash": {
         "Description": "MD5 hash of nginx configs",
-        "Type": "String",
+        "Type": "String"
     },
     "Kibana4Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
@@ -1284,7 +1284,7 @@
             "Name" : "AutoScalingGroupName",
             "Value" : { "Ref" : "ElasticsearchServerGroup" }
           } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "StatusCheckFailedAlarm" : {
@@ -1305,7 +1305,7 @@
             "Name" : "AutoScalingGroupName",
             "Value" : { "Ref" : "ElasticsearchServerGroup" }
           } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "UnHealthyHostAlarm" : {
@@ -1326,7 +1326,7 @@
           "Name" : "LoadBalancerName",
           "Value" : { "Ref" : "ElasticsearchELB"}
         } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "ELKStatusFilter": {

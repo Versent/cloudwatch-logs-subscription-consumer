@@ -5,7 +5,6 @@ export AWS_REGION=$tgregion
 CreateCrossLogDestination=true
 CloudWatchConsumerCompiledZip="cloudwatch-logs-subscription-consumer-2.2.1"
 
-Environment=$TagEnvironment
 KeyName="coreservices-$Environment-infra"
 S3bucketBackup="cloudops-$Environment.backup.transurban.com"
 S3bucketSource="cloudops-$Environment.files.transurban.com"

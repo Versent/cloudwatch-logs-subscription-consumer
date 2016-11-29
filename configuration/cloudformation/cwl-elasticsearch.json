@@ -841,7 +841,14 @@
                   "discovery.ec2.groups: ", { "Ref" : "ElasticsearchSecurityGroup" }, "\n",
                   "discovery.ec2.tag.type: elasticsearch\n",
                   "\n",
-                  "cloud.node.auto_attributes: true\n"
+                  "cloud.node.auto_attributes: true\n",
+                  "cluster.routing.allocation.node_concurrent_recoveries: 15\n",
+                  "threadpool:\n",
+                  "  bulk: {queue_size: 500, size: 4}\n",
+                  "  index: {size: 4}\n",
+                  "  management: {size: 4}\n",
+                  "indices.recovery.concurrent_streams: 3\n",
+                  "indices.recovery.max_bytes_per_sec: '40mb'\n"
                 ]]}
               },
               "/etc/elasticsearch/snapshot.sh": {
@@ -1110,14 +1117,6 @@
           "node.name: $instance_id\n",
           "network.host: 0.0.0.0\n",
           "node.rack: $az\n",
-
-          "cluster.routing.allocation.node_concurrent_recoveries: 15\n",
-          "threadpool:\n",
-          "  bulk: {queue_size: 500, size: 4}\n",
-          "  index: {size: 4}\n",
-          "  management: {size: 4}\n",
-          "indices.recovery.concurrent_streams: 3\n",
-          "indices.recovery.max_bytes_per_sec: '40mb'\n",
           "EOF\n",
 
           {"Fn::If": ["LDAPAuth", "export NGINX_LDAP=1\n", ""]},

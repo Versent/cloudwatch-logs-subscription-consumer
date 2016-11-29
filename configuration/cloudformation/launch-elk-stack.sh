@@ -81,7 +81,6 @@ launch_stack "$elkstackname" "https://s3.amazonaws.com/$S3bucketSource/$S3Downlo
     ParameterKey=Kibana3Filename,ParameterValue=$Kibana3Filename \
     ParameterKey=Kibana4Filename,ParameterValue=$Kibana4Filename \
     ParameterKey=KinesisShards,ParameterValue=$KinesisShards \
-    ParameterKey=LogFormat,ParameterValue=$LogFormat \
     ParameterKey=LogGroupNameRegex,ParameterValue=$LogGroupNameRegex \
     ParameterKey=ManagedServicesTopicARN,ParameterValue=$ManagedServicesTopicARN \
     ParameterKey=MonitorStack,ParameterValue=$MonitorStack \
@@ -96,7 +95,6 @@ launch_stack "$elkstackname" "https://s3.amazonaws.com/$S3bucketSource/$S3Downlo
     ParameterKey=SnapRetentionDays,ParameterValue=$SnapRetentionDays \
     ParameterKey=SubnetA,ParameterValue=$SubnetA \
     ParameterKey=SubnetB,ParameterValue=$SubnetB \
-    ParameterKey=SubscriptionFilterPattern,ParameterValue=$SubscriptionFilterPattern \
     ParameterKey=TagApplication,ParameterValue=$TagApplication \
     ParameterKey=TagEnvironment,ParameterValue=$TagEnvironment \
     ParameterKey=TagEnvironmentNumber,ParameterValue=$TagEnvironmentNumber \

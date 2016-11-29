@@ -78,11 +78,6 @@
       "Type": "String",
       "Default": "10.153.16.128/26"
     },
-    "ELBAllowedRange5": {
-      "Description": "Allowed Range 5 (CIDR) to elk ELB",
-      "Type": "String",
-      "Default": "10.98.32.0/20"
-    },
     "LDAPServer": {
       "Description": "If not empty, it will enable auth to LDAP and specify the LDAP host",
       "Type": "String",
@@ -670,7 +665,6 @@
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange2" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange3" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange4" } },
-          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange5" } }
         ],
         "Tags": [
           {

@@ -284,6 +284,10 @@
         "Type": "String",
         "Default": "tu-nginx-configuration-files.zip"
     },
+    "NginxConfigHash": {
+        "Description": "MD5 hash of nginx configs",
+        "Type": "String",
+    },
     "Kibana4Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
       "Type": "String",
@@ -1053,6 +1057,7 @@
                 "REGION=\"",{ "Ref": "AWS::Region" },"\"\n",
                 "export AWS_REGION=$REGION\n",
                 "export AWS_DEFAULT_REGION=$REGION\n",
+                "NGINX_CONFIG_HASH='", {"Ref": "NginxConfigHash"}, "'\n",
                 "\n",
                 "httpproxyhost='",{ "Ref": "HttpProxyHost" },"'\n",
                 "httpproxyport='",{ "Ref": "HttpProxyPort" },"'\n",

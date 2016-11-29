@@ -279,6 +279,11 @@
       "Type": "String",
       "Default": "cloudwatch-logs-subscription-consumer-1.2.0"
     },
+    "NginxLDAPConfigurationZip": {
+        "Description": "The zip file which contains nginx configuration.",
+        "Type": "String",
+        "Default": "tu-nginx-configuration-files.zip"
+    },
     "Kibana4Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
       "Type": "String",

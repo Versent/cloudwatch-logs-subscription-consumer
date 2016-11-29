@@ -887,7 +887,7 @@
                   "#!/bin/bash -xe\n\n",
                   "#Healtch checker. Should run every minute via crontab\n",
                   "date=`date --iso-8601=seconds`\n",
-                  "curl -s http://localhost:9200/_cluster/health | sed \"s/^/$date /\" | sed 's/green/1/' | sed 's/yellow/2/' | sed 's/red/3/' >> /var/log/elasticsearch/elasticsearch-health.log\n",
+                  "curl -s http://localhost:9200/_cluster/health?local=true | sed \"s/^/$date /\" | sed 's/green/1/' | sed 's/yellow/2/' | sed 's/red/3/' >> /var/log/elasticsearch/elasticsearch-health.log\n",
                   "echo '' >> /var/log/elasticsearch/elasticsearch-health.log\n",
                   "\n"
                   ]]},

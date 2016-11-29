@@ -5,8 +5,8 @@ set -eu -o pipefail
 dir="$(dirname "$0")"
 source "$dir/launch-stack.sh"
 
+cd "$dir/.."
 #TEMP, include maven install and build the java app here
-#
 mavenversion=3.3.9
 export MAVEN_OPTS="-Dhttps.proxyHost=$HttpProxyHost -Dhttps.proxyPort=3128 -Xmx512m"
 if [ ! -f apache-maven-$mavenversion-bin.tar.gz ]; then
@@ -39,10 +39,9 @@ fi
 aws s3 cp target/$CloudWatchConsumerCompiledZip-cfn.zip s3://$S3bucketSource/$S3DownloadPath/
 aws s3 cp $Kibana4Filename.rpm s3://$S3bucketSource/$S3DownloadPath/
 aws s3 cp elasticsearch-$ElasticSearchVersion.rpm s3://$S3bucketSource/$S3DownloadPath/
-cd configuration/cloudformation
-aws s3 cp cwl-elasticsearch.json s3://$S3bucketSource/$S3DownloadPath/
-# aws s3 ls s3://$S3bucketSource/$S3DownloadPath/
 
+cd "$dir"
+aws s3 cp cwl-elasticsearch.json s3://$S3bucketSource/$S3DownloadPath/
 #Create the loggroup for ELK state in advance. Fail is Ok if the group already exists
 aws logs create-log-group --log-group-name "$TagEnvironment#tufms.elk#elasticsearch-health.log" || true
 

@@ -33,7 +33,7 @@ export elballowedrange4='10.153.16.128/26'
 export elbexternalallowedrange='103.3.236.11/32'
 
 AWSCloudPluginVersion="2.7.1"
-BuildId=$BUILD_NUMBER
+BuildId=$StackNumber
 
 ClusterSize="2"
 DefaultSecurityGroup=$defaultsg

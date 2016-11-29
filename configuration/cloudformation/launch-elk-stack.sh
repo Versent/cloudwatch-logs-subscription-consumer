@@ -103,4 +103,10 @@ launch_stack "$elkstackname" "https://s3.amazonaws.com/$S3bucketSource/$S3Downlo
     ParameterKey=TagService,ParameterValue=$TagService \
     ParameterKey=TagTenant,ParameterValue=$TagTenant \
     ParameterKey=VPC,ParameterValue=$VPC \
+    ParameterKey=LDAPBaseDN,ParameterValue=$LDAPBaseDN \
+    ParameterKey=LDAPBindPass,ParameterValue=$LDAPBindPass \
+    ParameterKey=LDAPBindUser,ParameterValue=$LDAPBindUser \
+    ParameterKey=LDAPGroup,ParameterValue=$LDAPGroup \
+    ParameterKey=LDAPServer,ParameterValue=$LDAPServer \
+    ParameterKey=LDAPUsersDN,ParameterValue=$LDAPUsersDN \
 

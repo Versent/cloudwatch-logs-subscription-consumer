@@ -8,3 +8,4 @@ AMIID='ami-2b9daa48'
 source env/common.sh
 
 HttpProxyHost='proxy.cloudops.np.tu-aws.com'
+LDAPGroup='CN=ACCESS-APP-ELK-NONPROD-ADMIN,OU=Security,OU=Groups,DC=transurban,DC=com,DC=au'

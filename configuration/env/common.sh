@@ -77,3 +77,10 @@ TagTenant="Transurban"
 VPC=$vpcid
 
 elkstackname=$TagService-$TagApplication-$TagRole-$TagEnvironment-$TagEnvironmentNumber-$BuildId
+
+LDAPBindPass="$(unicreds --region "$AWS_DEFAULT_REGION" get transurban-ldap-bind.password)"
+#ldap_user="$(credstash -r ap-southeast-2 get transurban-ldap.user)"
+LDAPBaseDN="DC=Transurban,DC=com,DC=au"
+LDAPBindUser="CN=auSvcAwsNonprodLdap,OU=Service Accounts,OU=Privileged Accounts,DC=transurban,DC=com,DC=au"
+LDAPServer="ldap.transurban.com.au"
+LDAPUsersDN="OU=Users,OU=AUS,DC=Transurban,DC=com,DC=au"

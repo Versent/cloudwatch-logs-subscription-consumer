@@ -323,13 +323,6 @@
       "Default" : "14",
       "MinValue" : "1"
     },
-    "MonitorStack" : {
-      "Description": "Push logs from Elasticsearch, Nginx, KCL and CloudFormation to CloudWatch Logs",
-      "Type": "String",
-      "Default" : "true",
-      "AllowedValues" : ["true", "false"]
-    },
-
     "KinesisShards": {
       "Description": "Number of shards to create for the Kinesis subscription stream",
       "Type": "Number",
@@ -367,7 +360,6 @@
   },
 
   "Conditions" : {
-    "CreateCWLForStack" : {"Fn::Equals" : [{"Ref" : "MonitorStack"}, "true"]},
     "NoKeySpecified" : {"Fn::Equals" : [{"Ref" : "KeyName"}, ""]},
     "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]},
     "EnableAlarms": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "ManagedServicesTopicARN" }, ""]}]},
@@ -999,15 +991,9 @@
             "services": {
               "sysvinit": {
                 "awslogs": {
-                  "Fn::If": [
-                    "CreateCWLForStack",
-                    {
-                      "enabled" : "true",
-                      "ensureRunning" : "true",
-                      "files" : [ "/etc/awslogs/awslogs.conf" ]
-                    },
-                    "AWS::NoValue"
-                  ]
+                    "enabled" : "true",
+                    "ensureRunning" : "true",
+                    "files" : [ "/etc/awslogs/awslogs.conf" ]
                 }
               }
             }

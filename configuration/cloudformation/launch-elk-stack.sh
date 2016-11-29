@@ -90,7 +90,6 @@ CFN_PARAMS="$( cat <<EOF_PARAMS
     { "ParameterKey": "KinesisShards", "ParameterValue": "$KinesisShards" },
     { "ParameterKey": "LogGroupNameRegex", "ParameterValue": "$LogGroupNameRegex" },
     { "ParameterKey": "ManagedServicesTopicARN", "ParameterValue": "$ManagedServicesTopicARN" },
-    { "ParameterKey": "MonitorStack", "ParameterValue": "$MonitorStack" },
     { "ParameterKey": "NATSecurityGroup", "ParameterValue": "$NATSecurityGroup" },
     { "ParameterKey": "NginxPassword", "ParameterValue": "$NginxPassword" },
     { "ParameterKey": "NginxUsername", "ParameterValue": "$NginxUsername" },

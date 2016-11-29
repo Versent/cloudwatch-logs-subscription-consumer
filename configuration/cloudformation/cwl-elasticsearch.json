@@ -14,8 +14,8 @@
       "Description" : "EC2 instance type for the Elasticsearch nodes",
       "Type" : "String",
       "Default" : "t2.medium",
-      "AllowedValues" : [ 
-        "t2.micro", 
+      "AllowedValues" : [
+        "t2.micro",
         "t2.small",
         "t2.medium",
         "t2.large",
@@ -24,36 +24,36 @@
         "m4.2xlarge",
         "m4.4xlarge",
         "m4.10clarge",
-        "m3.medium", 
-        "m3.large", 
-        "m3.xlarge", 
-        "m3.2xlarge", 
-        "c3.large", 
-        "c3.xlarge", 
-        "c3.2xlarge", 
-        "c3.4xlarge", 
-        "c3.8xlarge", 
-        "c4.large", 
-        "c4.xlarge", 
-        "c4.2xlarge", 
-        "c4.4xlarge", 
-        "c4.8xlarge", 
-        "r3.large", 
-        "r3.xlarge", 
-        "r3.2xlarge", 
-        "r3.4xlarge", 
-        "r3.8xlarge", 
-        "i2.xlarge", 
-        "i2.2xlarge", 
-        "i2.4xlarge", 
-        "i2.8xlarge", 
-        "d2.xlarge", 
-        "d2.2xlarge", 
-        "d2.4xlarge", 
-        "d2.8xlarge", 
-        "hi1.4xlarge", 
-        "hs1.8xlarge", 
-        "cr1.8xlarge", 
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge",
+        "d2.xlarge",
+        "d2.2xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge",
+        "hi1.4xlarge",
+        "hs1.8xlarge",
+        "cr1.8xlarge",
         "cc2.8xlarge"
        ],
       "ConstraintDescription" : "Must be a valid EC2 instance type"
@@ -77,11 +77,6 @@
       "Description": "Allowed Range 4 (CIDR) to elk ELB",
       "Type": "String",
       "Default": "10.153.16.128/26"
-    },
-    "ELBAllowedRange5": {
-      "Description": "Allowed Range 5 (CIDR) to elk ELB",
-      "Type": "String",
-      "Default": "10.98.32.0/20"
     },
     "LDAPServer": {
       "Description": "If not empty, it will enable auth to LDAP and specify the LDAP host",
@@ -151,11 +146,6 @@
     "SubnetB": {
       "Description": "The Private Subnet Availability Zone B subnet ID for the ELB",
       "Type": "AWS::EC2::Subnet::Id"
-    },
-    "TagOwner": {
-      "Description": "Owner of the stack",
-      "Type": "String",
-      "Default": "its@versent.com.au"
     },
     "TagEnvironment": {
       "Description": "Name of the environment(dev, nonprod, prod, etc",
@@ -289,6 +279,15 @@
       "Type": "String",
       "Default": "cloudwatch-logs-subscription-consumer-1.2.0"
     },
+    "NginxLDAPConfigurationZip": {
+        "Description": "The zip file which contains nginx configuration.",
+        "Type": "String",
+        "Default": "tu-nginx-configuration-files.zip"
+    },
+    "NginxConfigHash": {
+        "Description": "MD5 hash of nginx configs",
+        "Type": "String"
+    },
     "Kibana4Filename": {
       "Description": "The Kibana4 archive filename in S3 the bucket. No extention please. The real file ends with .tar.gz",
       "Type": "String",
@@ -324,13 +323,6 @@
       "Default" : "14",
       "MinValue" : "1"
     },
-    "MonitorStack" : {
-      "Description": "Push logs from Elasticsearch, Nginx, KCL and CloudFormation to CloudWatch Logs",
-      "Type": "String",
-      "Default" : "true",
-      "AllowedValues" : ["true", "false"]
-    },
-
     "KinesisShards": {
       "Description": "Number of shards to create for the Kinesis subscription stream",
       "Type": "Number",
@@ -343,6 +335,12 @@
       "Type": "Number",
       "Default" : "5",
       "MinValue" : "0"
+    },
+
+    "CreateCrossLogDestination": {
+      "Description": "Create the cross log destination if `true`",
+      "Type": "String",
+      "Default": "true"
     },
 
     "ElasticsearchReplicas": {
@@ -360,13 +358,13 @@
     }
 
   },
-  
+
   "Conditions" : {
-    "CreateCWLForStack" : {"Fn::Equals" : [{"Ref" : "MonitorStack"}, "true"]},
     "NoKeySpecified" : {"Fn::Equals" : [{"Ref" : "KeyName"}, ""]},
     "ESSnapshotIDisSet": {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "ESVolumeSnapshotId"}, ""]}]},
     "EnableAlarms": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "ManagedServicesTopicARN" }, ""]}]},
-    "LDAPAuth": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "LDAPServer" }, ""]}]}
+    "LDAPAuth": {"Fn::Not": [{"Fn::Equals": [{ "Ref" : "LDAPServer" }, ""]}]},
+    "CreateCrossLogDestinationCondition": {"Fn::Equals": [{"Ref": "CreateCrossLogDestination"}, "true"]}
   },
 
   "Resources" : {
@@ -381,7 +379,7 @@
         "AttributeDefinitions" : [
           {
             "AttributeName" : "leaseKey",
-            "AttributeType" : "S"   
+            "AttributeType" : "S"
           }
         ],
         "KeySchema" : [
@@ -414,10 +412,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -430,7 +428,7 @@
           "Version": "2012-10-17",
           "Statement": [{
             "Effect": "Allow",
-            "Principal": { 
+            "Principal": {
                 "Service": { "Fn::Join": ["", ["logs.", { "Ref": "AWS::Region" } ,".amazonaws.com" ]]}
             },
             "Action": "sts:AssumeRole"
@@ -438,8 +436,10 @@
         }
       }
     },
+
     "CrossLogDestination" : {
       "Type" : "AWS::Logs::Destination",
+      "Condition": "CreateCrossLogDestinationCondition",
       "Properties" : {
         "DestinationName": { "Fn::Join" : [ "-", ["ELKCrossLogDestination",{"Ref": "BuildId"}]]},
         "RoleArn": { "Fn::GetAtt" : [ "CloudWatchLogsKinesisRole", "Arn" ] },
@@ -576,7 +576,7 @@
         "Roles": [ { "Ref": "ElasticsearchNodeRole" } ]
       }
     },
-    
+
     "ElasticsearchSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
@@ -584,11 +584,11 @@
         "GroupDescription" : "Enable Elasticsearch access",
         "SecurityGroupIngress" : [
           {
-            "IpProtocol" : "tcp", 
-            "FromPort" : "8080", 
+            "IpProtocol" : "tcp",
+            "FromPort" : "8080",
             "ToPort" : "8080",
             "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["ElasticsearchELB", "SourceSecurityGroup.OwnerAlias"]},
-            "SourceSecurityGroupId" : { "Ref" : "ElasticsearchELBSecurityGroup" } 
+            "SourceSecurityGroupId" : { "Ref" : "ElasticsearchELBSecurityGroup" }
           }
         ],
         "Tags": [
@@ -608,10 +608,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -621,8 +621,8 @@
       "Type" : "AWS::EC2::SecurityGroupIngress",
       "Properties" : {
         "GroupId" : { "Ref": "ElasticsearchSecurityGroup" },
-        "IpProtocol" : "tcp", 
-        "FromPort" : "9300", 
+        "IpProtocol" : "tcp",
+        "FromPort" : "9300",
         "ToPort" : "9399",
         "SourceSecurityGroupId" : { "Ref" : "ElasticsearchSecurityGroup" },
         "Tags": [
@@ -642,14 +642,14 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
-    }, 
+    },
 
     "ElasticsearchELBSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
@@ -660,8 +660,7 @@
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange1" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange2" } },
           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange3" } },
-          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange4" } },
-          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange5" } }
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "ELBAllowedRange4" } }
         ],
         "Tags": [
           {
@@ -680,10 +679,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -817,10 +816,10 @@
               ]
             }
           },
-          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }}, 
+          {"Key": "Tenant", "Value": {"Ref": "TagTenant" }},
           {"Key": "Service","Value": {"Ref": "TagService"}},
           {"Key": "Application","Value": {"Ref": "TagApplication"}},
-          {"Key": "Role","Value": {"Ref": "TagRole"}}, 
+          {"Key": "Role","Value": {"Ref": "TagRole"}},
           {"Key": "Environment","Value": {"Ref": "TagEnvironment"}}
         ]
       }
@@ -831,69 +830,6 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "config" : {
-            "commands" : {
-              "00_copyNginxConfig": {
-                "command":
-                   { "Fn::If": [ 
-                     "LDAPAuth", 
-                       { "Fn::Join" : ["", [{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx-ldap.sh ",{ "Ref" :"NginxSourceVersion"}," && ",
-                       "sed -i 's/__LDAPSRV__/",{ "Ref" :"LDAPServer"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPUSERDN__/",{ "Ref" :"LDAPUsersDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPBASEDN__/",{ "Ref" :"LDAPBaseDN"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPGROUP__/",{ "Ref" :"LDAPGroup"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPBINDDN__/",{ "Ref" :"LDAPBindUser"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "sed -i 's/__LDAPBINDPWD__/",{ "Ref" :"LDAPBindPass"},"/' ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap && ",
-                       "/bin/cp -rf ",{ "Ref" :"CloudWatchConsumerCompiledZip"},"/configuration/nginx/nginx.conf.ldap /etc/nginx/nginx.conf"]]},
-                       { "Fn::Join" : ["", ["cp ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/nginx/nginx.conf /etc/nginx/nginx.conf" ]]}
-                  ]
-                }
-              },
-              "01_copyElasticsearchTemplates": {
-                "command": { "Fn::Join" : ["", [
-                  "cp -R ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/elasticsearch/* /etc/elasticsearch/"
-                ]]}
-              },
-              "02_updateESConfigForNode": {
-                "command": { "Fn::Join" : ["", [
-                  "echo \"",
-                  "node.name: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null ",
-                  "| grep instanceId ",
-                  "| awk -F\\\" '{print $4}')",
-                  "\" >> /etc/elasticsearch/elasticsearch.yml && ",
-                  "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml &&",
-                  "echo \"",
-                  "node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null ",
-                  "| grep availabilityZone ",
-                  "| awk -F\\\" '{print $4}')",
-                  "\" >> /etc/elasticsearch/elasticsearch.yml"
-                ]]}
-              },
-              "03_installESPlugins": {
-                "command": { "Fn::Join" : ["", [
-                  "/usr/share/elasticsearch/bin/plugin install -b cloud-aws" ,
-                  " && ",
-                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf"
-                ]]}
-              },
-              "04_nginxAuthConfig": {
-                "command": { "Fn::Join" : ["", [ 
-                  "htpasswd -c -b /etc/nginx/.htpasswd ", 
-                  { "Ref": "NginxUsername" }, " ", 
-                  { "Ref": "NginxPassword" }, "\n"
-                 ]]}
-              },
-              "06_startKibana4": {
-                "command": "/etc/init.d/kibana start",
-                "cwd": "~"
-              },
-              "07_getPipAndCurator": {
-                "command": "pip install elasticsearch-curator"
-              },
-              "08_CWLStateDir" : {
-                "command" : "mkdir -p /var/awslogs/state"
-              }
-            },
-
             "files": {
               "/etc/elasticsearch/elasticsearch.yml" : {
                 "content" : { "Fn::Join" : ["", [
@@ -905,7 +841,14 @@
                   "discovery.ec2.groups: ", { "Ref" : "ElasticsearchSecurityGroup" }, "\n",
                   "discovery.ec2.tag.type: elasticsearch\n",
                   "\n",
-                  "cloud.node.auto_attributes: true\n"
+                  "cloud.node.auto_attributes: true\n",
+                  "cluster.routing.allocation.node_concurrent_recoveries: 15\n",
+                  "threadpool:\n",
+                  "  bulk: {queue_size: 500, size: 4}\n",
+                  "  index: {size: 4}\n",
+                  "  management: {size: 4}\n",
+                  "indices.recovery.concurrent_streams: 3\n",
+                  "indices.recovery.max_bytes_per_sec: '40mb'\n"
                 ]]}
               },
               "/etc/elasticsearch/snapshot.sh": {
@@ -951,7 +894,7 @@
                   "#!/bin/bash -xe\n\n",
                   "#Healtch checker. Should run every minute via crontab\n",
                   "date=`date --iso-8601=seconds`\n",
-                  "curl -s http://localhost:9200/_cluster/health | sed \"s/^/$date /\" | sed 's/green/1/' | sed 's/yellow/2/' | sed 's/red/3/' >> /var/log/elasticsearch/elasticsearch-health.log\n",
+                  "curl -s http://localhost:9200/_cluster/health?local=true | sed \"s/^/$date /\" | sed 's/green/1/' | sed 's/yellow/2/' | sed 's/red/3/' >> /var/log/elasticsearch/elasticsearch-health.log\n",
                   "echo '' >> /var/log/elasticsearch/elasticsearch-health.log\n",
                   "\n"
                   ]]},
@@ -1049,33 +992,21 @@
                   "    compress\n",
                   "}\n"
                 ]]}
+              },
+              "/etc/systemd/system/elasticsearch.service.d/override.conf": {
+                  "content": {"Fn::Join": ["", [
+                      "[Service]\n",
+                      "LimitNOFILE=131072\n"
+                  ]]}
               }
             },
 
             "services": {
               "sysvinit": {
-                "nginx": {
-                  "enabled": true,
-                  "ensureRunning": true,
-                  "files": [ "/etc/nginx/nginx.conf" ],
-                  "sources": [ "usr/share/nginx/html" ]
-                },
-                "elasticsearch": {
-                  "enabled": true,
-                  "ensureRunning": true,
-                  "files": [ "/etc/elasticsearch/elasticsearch.yml", "/etc/elasticsearch/logging.yml", "/etc/sysconfig/elasticsearch" ],
-                  "sources": [ "/usr/share/elasticsearch/bin" ]
-                },
                 "awslogs": {
-                  "Fn::If": [
-                    "CreateCWLForStack",
-                    {
-                      "enabled" : "true", 
-                      "ensureRunning" : "true",
-                      "files" : [ "/etc/awslogs/awslogs.conf" ]
-                    },
-                    "AWS::NoValue"
-                  ]
+                    "enabled" : "true",
+                    "ensureRunning" : "true",
+                    "files" : [ "/etc/awslogs/awslogs.conf" ]
                 }
               }
             }
@@ -1087,7 +1018,7 @@
         "ImageId" : { "Ref" : "AMIID" },
         "InstanceType"   : { "Ref" : "InstanceType" },
         "SecurityGroups" : [
-             {"Ref" : "ElasticsearchSecurityGroup"}, 
+             {"Ref" : "ElasticsearchSecurityGroup"},
              {"Ref": "NATSecurityGroup"},
              {"Ref": "DefaultSecurityGroup"}
         ],
@@ -1104,7 +1035,7 @@
                 "Encrypted" : true,
                 "DeleteOnTermination": false,
                 "VolumeType" : "gp2"
-              }, 
+              },
               {
                 "VolumeSize" : {"Ref":"ESVolumeSize"},
                 "Encrypted" : true,
@@ -1112,7 +1043,7 @@
                 "VolumeType" : "gp2"
               }
             ]
-          } 
+          }
         } ],
         "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
           "#!/bin/bash -ex\n",
@@ -1125,6 +1056,7 @@
                 "REGION=\"",{ "Ref": "AWS::Region" },"\"\n",
                 "export AWS_REGION=$REGION\n",
                 "export AWS_DEFAULT_REGION=$REGION\n",
+                "NGINX_CONFIG_HASH='", {"Ref": "NginxConfigHash"}, "'\n",
                 "\n",
                 "httpproxyhost='",{ "Ref": "HttpProxyHost" },"'\n",
                 "httpproxyport='",{ "Ref": "HttpProxyPort" },"'\n",
@@ -1144,22 +1076,26 @@
                 "fi\n",
           "#Install few required yums\n",
           "yum clean all\n",
-          "until yum install -y httpd python-pip nginx; do sleep 10; done\n",
+          "until yum install -y python-pip ; do sleep 10; done\n",
+          "until yum remove -y nginx; do sleep 10; done\n",
+
           "wget --no-cookies --no-check-certificate --header 'Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie' 'http://download.oracle.com/otn-pub/java/jdk/8u91-b14/jre-8u91-linux-x64.rpm'\n",
           "rpm -ivh jre-8u91-linux-x64.rpm\n",
           "\n",
           "\n",
           "\n",
-          "cd ~\n",
+          "cd /tmp\n",
+
+          "aws s3 cp s3://", {"Ref": "S3bucketSource"}, "/", {"Ref": "S3DownloadPath"}, "/", {"Ref": "NginxLDAPConfigurationZip"}, " .\n",
+          "unzip ", {"Ref": "NginxLDAPConfigurationZip"}, "\n",
+
           "#Get elasticsearch RPM\n",
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"ElasticSearchFilename"} ,".rpm .\n",
           "yum install -y ",{ "Ref" :"ElasticSearchFilename"} ,".rpm\n",
 
-          "systemctl daemon-reload\n",
-          "systemctl enable elasticsearch.service\n",
-
           "aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip .\n",
           "unzip ", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"-cfn.zip\n",
+
           "# (OLD, now switched to rpm based install for kibana ) Get Kibana 4\n",
           "#aws s3 cp s3://",{"Ref": "S3bucketSource"},"/", { "Ref" : "S3DownloadPath" } ,"/",{"Ref": "Kibana4Filename"},".tar.gz .\n",
           "#tar -xf ",{"Ref": "Kibana4Filename"},".tar.gz\n",
@@ -1170,9 +1106,47 @@
           "cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
           "    --region ", { "Ref" : "AWS::Region" }, " -v\n",
 
+          "echo copyElasticsearchTemplates\n",
+          "cp -R ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/elasticsearch/* /etc/elasticsearch/\n",
+
+          "echo updateESConfigForNode\n",
+          "instance_id=\"$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document |  awk -F'\"' '/instanceId/{print $4}')\"\n",
+          "az=\"$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document |  awk -F'\"' '/availabilityZone/{print $4}')\"\n",
+
+          "cat <<EOF >> /etc/elasticsearch.yml\n",
+          "node.name: $instance_id\n",
+          "network.host: 0.0.0.0\n",
+          "node.rack: $az\n",
+          "EOF\n",
+
+          {"Fn::If": ["LDAPAuth", "export NGINX_LDAP=1\n", ""]},
+          "export DNSDomain='", {"Ref": "DNSDomain"}, "'\n",
+          "export S3bucketSource='", {"Ref": "S3bucketSource"}, "'\n",
+          "export LDAPServer='", {"Ref": "LDAPServer"}, "'\n",
+          "export LDAPUsersDN='", {"Ref": "LDAPUsersDN"}, "'\n",
+          "export LDAPBaseDN='", {"Ref": "LDAPBaseDN"}, "'\n",
+          "export LDAPGroup='", {"Ref": "LDAPGroup"}, "'\n",
+          "export LDAPBindUser='", {"Ref": "LDAPBindUser"}, "'\n",
+          "export LDAPBindPass='", {"Ref": "LDAPBindPass"}, "'\n",
+          "bash ./nginx/entrypoint.sh '", {"Ref": "NginxSourceVersion"}, "'\n",
+
+          "systemctl daemon-reload\n",
+          "systemctl start elasticsearch elasticsearch kibana\n",
+          "systemctl restart nginx\n",
+          "systemctl enable kibana elasticsearch nginx\n",
+
+          "echo installESPlugins\n",
+          "/usr/share/elasticsearch/bin/plugin install -b cloud-aws\n",
+          "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf\n",
+
+          "echo getPipAndCurator\n",
+          "pip install elasticsearch-curator\n",
+
+          "mkdir -p /var/awslogs/state\n",
+
           "chown -R elasticsearch:elasticsearch /etc/elasticsearch/templates\n",
-          "service elasticsearch restart\n",
-          "service nginx restart\n",
+          "systemctl restart elasticsearch\n",
+
           "# Allow 60% of total mem as heap size for cluster \n",
           "freemem=$(free -m | grep Mem | awk '{ printf \"%1.0f\\n\", 0.6*$2; }')",
           " && sed -i \"s/#ES_HEAP_SIZE=.*/ES_HEAP_SIZE=$(echo $freemem)m/g\" /etc/sysconfig/elasticsearch\n",
@@ -1282,7 +1256,10 @@
           "EOF\n",
           "\n",
           "# Install and activate Trend Micro Deep Security Agent\n",
-          "/usr/local/bin/dsa-activate.sh\n",
+          "#/usr/local/bin/dsa-activate.sh\n",
+          "#systemctl stop ds_agent\n",
+          "#systemctl disable ds_agent\n",
+          "#systemctl mask ds_agent\n",
           "\n",
           "systemctl enable diamond.service\n",
           "systemctl start diamond.service\n\n",
@@ -1317,8 +1294,8 @@
         "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," InstanceCPULoadAlarm"] ] },
         "Namespace" : "AWS/EC2",
         "MetricName" : "CPUUtilization",
-        "Statistic" : "Average",
-        "Period" : "300",
+        "Statistic" : "Minimum",
+        "Period" : "3600",
         "Threshold" : "90",
         "Unit" : "Percent",
         "ComparisonOperator" : "GreaterThanThreshold",
@@ -1327,8 +1304,7 @@
             "Name" : "AutoScalingGroupName",
             "Value" : { "Ref" : "ElasticsearchServerGroup" }
           } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "StatusCheckFailedAlarm" : {
@@ -1339,7 +1315,7 @@
         "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," StatusCheckFailedAlarm"] ] },
         "Namespace" : "AWS/EC2",
         "MetricName" : "StatusCheckFailed",
-        "Statistic" : "Sum",
+        "Statistic" : "Maximum",
         "Period" : "900",
         "Threshold" : "1",
         "Unit" : "Count",
@@ -1349,8 +1325,7 @@
             "Name" : "AutoScalingGroupName",
             "Value" : { "Ref" : "ElasticsearchServerGroup" }
           } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "UnHealthyHostAlarm" : {
@@ -1361,7 +1336,7 @@
         "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," UnHealthyHostAlarm"] ] },
         "Namespace" : "AWS/ELB",
         "MetricName" : "UnHealthyHostCount",
-        "Statistic" : "Sum",
+        "Statistic" : "Minimum",
         "Period" : "900",
         "Threshold" : "1",
         "Unit" : "Count",
@@ -1371,8 +1346,7 @@
           "Name" : "LoadBalancerName",
           "Value" : { "Ref" : "ElasticsearchELB"}
         } ],
-        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
+        "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "ELKStatusFilter": {
@@ -1440,13 +1414,12 @@
                 "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKIndexBackupAlarm"] ] },
                 "MetricName": "ELKIndexBackupExitCode",
                 "Namespace": "ELKStatus",
-                "Statistic": "Average",
+                "Statistic": "Minimum",
                 "Period": "86400",
                 "EvaluationPeriods": "1",
                 "Threshold": "399",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"
             }
         },
@@ -1463,7 +1436,6 @@
                 "Threshold": "0",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"
             }
         },
@@ -1475,11 +1447,10 @@
                 "MetricName": "ELKStatusNotGreen",
                 "Namespace": "ELKStatus",
                 "Statistic": "Minimum",
-                "Period": "600",
+                "Period": "86400",
                 "EvaluationPeriods": "1",
                 "Threshold": "1.5",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"
             }
         },
@@ -1491,12 +1462,11 @@
                 "AlarmName" : {"Fn::Join": [ "",[{"Ref" : "TagAlarmPrefix" }," ",{  "Ref" : "TagApplication" }," ELKNumberOfNodesAlarm"] ] },
                 "MetricName": "ELKStatusNumberOfNodes",
                 "Namespace": "ELKStatus",
-                "Statistic": "Average",
-                "Period": "600",
+                "Statistic": "Maximum",
+                "Period": "900",
                 "EvaluationPeriods": "1",
                 "Threshold": "1",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "LessThanOrEqualToThreshold"
             }
         },
@@ -1509,7 +1479,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "RootBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1531,7 +1500,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "HomeBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1553,7 +1521,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1575,7 +1542,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarLogBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1597,7 +1563,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarLogAuditBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1619,7 +1584,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "ELKBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1641,7 +1605,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "TmpBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {

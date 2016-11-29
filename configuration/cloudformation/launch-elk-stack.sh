@@ -3,7 +3,6 @@
 set -eu -o pipefail
 
 dir="$(readlink -f "$(dirname "$0")" )"
-root="$dir/../.."
 cd "$dir/.."
 source "$dir/launch-stack.sh"
 
@@ -43,7 +42,6 @@ source "$dir/launch-stack.sh"
 # aws s3 cp elasticsearch-$ElasticSearchVersion.rpm s3://$S3bucketSource/$S3DownloadPath/
 
 
-cd "$root"
 NginxConfigHash="$(tar c nginx | md5sum | awk '{print $1}')"
 if [ "${DRYRUN:-}" != yes ]; then
     zip -r nginx.zip nginx

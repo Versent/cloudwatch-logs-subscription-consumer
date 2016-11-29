@@ -985,6 +985,12 @@
                   "    compress\n",
                   "}\n"
                 ]]}
+              },
+              "/etc/systemd/system/elasticsearch.service.d/override.conf": {
+                  "content": {"Fn::Join": ["", [
+                      "[Service]\n",
+                      "LimitNOFILE=131072\n"
+                  ]]}
               }
             },
 

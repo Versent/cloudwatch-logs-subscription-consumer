@@ -2,10 +2,11 @@
 
 set -eu -o pipefail
 
-dir="$(dirname "$0")"
+dir="$(readlink -f "$(dirname "$0")" )"
+cd "$dir/.."
 source "$dir/launch-stack.sh"
 
-cd "$dir/.."
+cd "$dir/../.."
 #TEMP, include maven install and build the java app here
 mavenversion=3.3.9
 export MAVEN_OPTS="-Dhttps.proxyHost=$HttpProxyHost -Dhttps.proxyPort=3128 -Xmx512m"

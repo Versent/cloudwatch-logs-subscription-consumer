@@ -34,6 +34,7 @@ export elbexternalallowedrange='103.3.236.11/32'
 
 AWSCloudPluginVersion="2.7.1"
 BuildId=$StackNumber
+NginxLDAPConfigurationZip="tu-nginx-configuration-files.zip"
 
 ClusterSize="2"
 DefaultSecurityGroup=$defaultsg

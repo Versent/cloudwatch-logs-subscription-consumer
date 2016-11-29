@@ -33,7 +33,7 @@ aws s3 cp target/$CloudWatchConsumerCompiledZip-cfn.zip s3://$S3bucketSource/$S3
 aws s3 cp $Kibana4Filename.rpm s3://$S3bucketSource/$S3DownloadPath/
 aws s3 cp elasticsearch-$ElasticSearchVersion.rpm s3://$S3bucketSource/$S3DownloadPath/
 cd configuration/cloudformation
-aws s3 cp cwl-elasticsearch-1.json s3://$S3bucketSource/$S3DownloadPath/
+aws s3 cp cwl-elasticsearch.json s3://$S3bucketSource/$S3DownloadPath/
 # aws s3 ls s3://$S3bucketSource/$S3DownloadPath/
 
 #Create the loggroup for ELK state in advance. Fail is Ok if the group already exists
@@ -44,9 +44,8 @@ aws s3 cp "$dir/cwl-elasticsearch.json" "s3://$S3bucketSource/$S3DownloadPath/"
 
 #launch stack
 echo "Start Create Stack..."
-aws cloudformation create-stack --capabilities CAPABILITY_IAM --disable-rollback \
-  --stack-name "$elkstackname" \
-  --template-url https://s3-$AWS_REGION.amazonaws.com/$S3bucketSource/$S3DownloadPath/cwl-elasticsearch.json \
+launch_stack "$elkstackname" "https://s3.amazonaws.com/$S3bucketSource/$S3DownloadPath/cwl-elasticsearch.json" \
+  --capabilities CAPABILITY_IAM \
   --parameters \
     ParameterKey=HttpProxyHost,ParameterValue=$HttpProxyHost \
     ParameterKey=HttpProxyPort,ParameterValue=$HttpProxyPort \

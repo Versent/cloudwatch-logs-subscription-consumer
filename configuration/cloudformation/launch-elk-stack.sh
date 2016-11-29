@@ -6,40 +6,40 @@ dir="$(readlink -f "$(dirname "$0")" )"
 cd "$dir/.."
 source "$dir/launch-stack.sh"
 
-cd "$dir/../.."
-#TEMP, include maven install and build the java app here
-mavenversion=3.3.9
-export MAVEN_OPTS="-Dhttps.proxyHost=$HttpProxyHost -Dhttps.proxyPort=3128 -Xmx512m"
-if [ ! -f apache-maven-$mavenversion-bin.tar.gz ]; then
-  wget http://mirror.ventraip.net.au/apache/maven/maven-3/$mavenversion/binaries/apache-maven-$mavenversion-bin.tar.gz
-  tar -xzvf apache-maven-$mavenversion-bin.tar.gz
-fi
-
-if [ -d target ]; then rm -rf target; fi
-if [ ! -f target/$CloudWatchConsumerCompiledZip-cfn.zip ]; then
-  #check if kinesis-connector is present
-  if [ ! -f ~/.m2/repository/com/amazonaws/amazon-kinesis-connectors/1.2.0/amazon-kinesis-connectors-1.2.0.jar ]; then
-     echo "Cannot find amazon-kinesis-connectors.jar, please run the job elk-compile-kinesis-jar first!"
-     exit 1
-  fi
-  rm -f configuration/cloudformation/*.rpm
-  apache-maven-3.3.9/bin/mvn clean install -Dgpg.skip=true
-fi
-# END TMP
-
-echo Uploading template to S3
-aws s3 cp "$dir/ca-api-stack.json" "s3://$s3bucket/CA/"
-
-if [ ! -f $Kibana4Filename.rpm ]; then
-    wget https://download.elastic.co/kibana/kibana/$Kibana4Filename.rpm
-fi
-
-if [ ! -f elasticsearch-$ElasticSearchVersion.rpm ]; then
-    wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/rpm/elasticsearch/$ElasticSearchVersion/elasticsearch-$ElasticSearchVersion.rpm
-fi
-aws s3 cp target/$CloudWatchConsumerCompiledZip-cfn.zip s3://$S3bucketSource/$S3DownloadPath/
-aws s3 cp $Kibana4Filename.rpm s3://$S3bucketSource/$S3DownloadPath/
-aws s3 cp elasticsearch-$ElasticSearchVersion.rpm s3://$S3bucketSource/$S3DownloadPath/
+# cd "$dir/../.."
+# #TEMP, include maven install and build the java app here
+# mavenversion=3.3.9
+# export MAVEN_OPTS="-Dhttps.proxyHost=$HttpProxyHost -Dhttps.proxyPort=3128 -Xmx512m"
+# if [ ! -f apache-maven-$mavenversion-bin.tar.gz ]; then
+  # wget http://mirror.ventraip.net.au/apache/maven/maven-3/$mavenversion/binaries/apache-maven-$mavenversion-bin.tar.gz
+  # tar -xzvf apache-maven-$mavenversion-bin.tar.gz
+# fi
+#
+# if [ -d target ]; then rm -rf target; fi
+# if [ ! -f target/$CloudWatchConsumerCompiledZip-cfn.zip ]; then
+  # #check if kinesis-connector is present
+  # if [ ! -f ~/.m2/repository/com/amazonaws/amazon-kinesis-connectors/1.2.0/amazon-kinesis-connectors-1.2.0.jar ]; then
+     # echo "Cannot find amazon-kinesis-connectors.jar, please run the job elk-compile-kinesis-jar first!"
+     # exit 1
+  # fi
+  # rm -f configuration/cloudformation/*.rpm
+  # apache-maven-3.3.9/bin/mvn clean install -Dgpg.skip=true
+# fi
+# # END TMP
+#
+# echo Uploading template to S3
+# aws s3 cp "$dir/ca-api-stack.json" "s3://$s3bucket/CA/"
+#
+# if [ ! -f $Kibana4Filename.rpm ]; then
+    # wget https://download.elastic.co/kibana/kibana/$Kibana4Filename.rpm
+# fi
+#
+# if [ ! -f elasticsearch-$ElasticSearchVersion.rpm ]; then
+    # wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/rpm/elasticsearch/$ElasticSearchVersion/elasticsearch-$ElasticSearchVersion.rpm
+# fi
+# aws s3 cp target/$CloudWatchConsumerCompiledZip-cfn.zip s3://$S3bucketSource/$S3DownloadPath/
+# aws s3 cp $Kibana4Filename.rpm s3://$S3bucketSource/$S3DownloadPath/
+# aws s3 cp elasticsearch-$ElasticSearchVersion.rpm s3://$S3bucketSource/$S3DownloadPath/
 
 cd "$dir"
 aws s3 cp cwl-elasticsearch.json s3://$S3bucketSource/$S3DownloadPath/

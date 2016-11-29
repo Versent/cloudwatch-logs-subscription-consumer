@@ -1285,7 +1285,6 @@
             "Value" : { "Ref" : "ElasticsearchServerGroup" }
           } ],
         "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "StatusCheckFailedAlarm" : {
@@ -1307,7 +1306,6 @@
             "Value" : { "Ref" : "ElasticsearchServerGroup" }
           } ],
         "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "UnHealthyHostAlarm" : {
@@ -1329,7 +1327,6 @@
           "Value" : { "Ref" : "ElasticsearchELB"}
         } ],
         "AlarmActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ],
-        "OKActions" : [ {  "Ref" : "ManagedServicesTopicARN" } ]
       }
     },
     "ELKStatusFilter": {
@@ -1403,7 +1400,6 @@
                 "Threshold": "399",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"
             }
         },
@@ -1420,7 +1416,6 @@
                 "Threshold": "0",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "InsufficientDataActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"
             }
         },
@@ -1436,7 +1431,6 @@
                 "EvaluationPeriods": "1",
                 "Threshold": "1.5",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "GreaterThanThreshold"
             }
         },
@@ -1453,7 +1447,6 @@
                 "EvaluationPeriods": "1",
                 "Threshold": "1",
                 "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-                "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
                 "ComparisonOperator": "LessThanOrEqualToThreshold"
             }
         },
@@ -1466,7 +1459,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "RootBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1488,7 +1480,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "HomeBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1510,7 +1501,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1532,7 +1522,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarLogBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1554,7 +1543,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "VarLogAuditBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1576,7 +1564,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "ELKBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {
@@ -1598,7 +1585,6 @@
         "ComparisonOperator" : "LessThanThreshold",
         "EvaluationPeriods" : "5",
         "AlarmActions": [ { "Ref": "ManagedServicesTopicARN" } ],
-        "OKActions": [ { "Ref": "ManagedServicesTopicARN" } ],
         "MetricName" : "TmpBytesPercentFree",
         "Namespace" : "DiskSpace",
         "Dimensions" : [ {

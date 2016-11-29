@@ -49,64 +49,70 @@ aws logs create-log-group --log-group-name "$TagEnvironment#tufms.elk#elasticsea
 echo Uploading template to S3
 aws s3 cp "$dir/cwl-elasticsearch.json" "s3://$S3bucketSource/$S3DownloadPath/"
 
+CFN_PARAMS="$( cat <<EOF_PARAMS
+[
+    { "ParameterKey": "HttpProxyHost", "ParameterValue": "$HttpProxyHost" },
+    { "ParameterKey": "HttpProxyPort", "ParameterValue": "$HttpProxyPort" },
+    { "ParameterKey": "CreateCrossLogDestination", "ParameterValue": "$CreateCrossLogDestination" },
+    { "ParameterKey": "ELBAllowedRange1", "ParameterValue": "$elballowedrange1" },
+    { "ParameterKey": "ELBAllowedRange2", "ParameterValue": "$elballowedrange2" },
+    { "ParameterKey": "ELBAllowedRange3", "ParameterValue": "$elballowedrange3" },
+    { "ParameterKey": "ELBAllowedRange4", "ParameterValue": "$elballowedrange4" },
+    { "ParameterKey": "AMIID", "ParameterValue": "$AMIID" },
+    { "ParameterKey": "BuildId", "ParameterValue": "$BuildId" },
+    { "ParameterKey": "CloudWatchConsumerCompiledZip", "ParameterValue": "$CloudWatchConsumerCompiledZip" },
+    { "ParameterKey": "ClusterSize", "ParameterValue": "$ClusterSize" },
+    { "ParameterKey": "CrossAccountID", "ParameterValue": "$CrossAccountID" },
+    { "ParameterKey": "DefaultSecurityGroup", "ParameterValue": "$DefaultSecurityGroup" },
+    { "ParameterKey": "DNSDomain", "ParameterValue": "$DNSDomain" },
+    { "ParameterKey": "DNSZoneId", "ParameterValue": "$DNSZoneId" },
+    { "ParameterKey": "ElasticSearchFilename", "ParameterValue": "$ElasticSearchFilename" },
+    { "ParameterKey": "ElasticsearchReplicas", "ParameterValue": "$ElasticsearchReplicas" },
+    { "ParameterKey": "ElasticsearchShards", "ParameterValue": "$ElasticsearchShards" },
+    { "ParameterKey": "ELBSSLCertificate", "ParameterValue": "$ELBSSLCertificate" },
+    { "ParameterKey": "ESVolumeSize", "ParameterValue": "$ESVolumeSize" },
+    { "ParameterKey": "ESVolumeSnapshotId", "ParameterValue": "$ESVolumeSnapshotId" },
+    { "ParameterKey": "IndexBackupRetentionDays", "ParameterValue": "$IndexBackupRetentionDays" },
+    { "ParameterKey": "InstanceType", "ParameterValue": "$InstanceType" },
+    { "ParameterKey": "KeyName", "ParameterValue": "$KeyName" },
+    { "ParameterKey": "Kibana3Filename", "ParameterValue": "$Kibana3Filename" },
+    { "ParameterKey": "Kibana4Filename", "ParameterValue": "$Kibana4Filename" },
+    { "ParameterKey": "KinesisShards", "ParameterValue": "$KinesisShards" },
+    { "ParameterKey": "LogGroupNameRegex", "ParameterValue": "$LogGroupNameRegex" },
+    { "ParameterKey": "ManagedServicesTopicARN", "ParameterValue": "$ManagedServicesTopicARN" },
+    { "ParameterKey": "MonitorStack", "ParameterValue": "$MonitorStack" },
+    { "ParameterKey": "NATSecurityGroup", "ParameterValue": "$NATSecurityGroup" },
+    { "ParameterKey": "NginxPassword", "ParameterValue": "$NginxPassword" },
+    { "ParameterKey": "NginxUsername", "ParameterValue": "$NginxUsername" },
+    { "ParameterKey": "RetentionDays", "ParameterValue": "$RetentionDays" },
+    { "ParameterKey": "S3bucketBackup", "ParameterValue": "$S3bucketBackup" },
+    { "ParameterKey": "S3bucketSource", "ParameterValue": "$S3bucketSource" },
+    { "ParameterKey": "S3DownloadPath", "ParameterValue": "$S3DownloadPath" },
+    { "ParameterKey": "S3IndexBackupPath", "ParameterValue": "$S3IndexBackupPath" },
+    { "ParameterKey": "SnapRetentionDays", "ParameterValue": "$SnapRetentionDays" },
+    { "ParameterKey": "SubnetA", "ParameterValue": "$SubnetA" },
+    { "ParameterKey": "SubnetB", "ParameterValue": "$SubnetB" },
+    { "ParameterKey": "TagApplication", "ParameterValue": "$TagApplication" },
+    { "ParameterKey": "TagEnvironment", "ParameterValue": "$TagEnvironment" },
+    { "ParameterKey": "TagEnvironmentNumber", "ParameterValue": "$TagEnvironmentNumber" },
+    { "ParameterKey": "TagOwner", "ParameterValue": "$TagOwner" },
+    { "ParameterKey": "TagRole", "ParameterValue": "$TagRole" },
+    { "ParameterKey": "TagService", "ParameterValue": "$TagService" },
+    { "ParameterKey": "TagTenant", "ParameterValue": "$TagTenant" },
+    { "ParameterKey": "VPC", "ParameterValue": "$VPC" },
+    { "ParameterKey": "LDAPBaseDN", "ParameterValue": "$LDAPBaseDN" },
+    { "ParameterKey": "LDAPBindPass", "ParameterValue": "$LDAPBindPass" },
+    { "ParameterKey": "LDAPBindUser", "ParameterValue": "$LDAPBindUser" },
+    { "ParameterKey": "LDAPGroup", "ParameterValue": "$LDAPGroup" },
+    { "ParameterKey": "LDAPServer", "ParameterValue": "$LDAPServer" },
+    { "ParameterKey": "LDAPUsersDN", "ParameterValue": "$LDAPUsersDN" }
+]
+EOF_PARAMS
+)"
+
+
 #launch stack
 echo "Start Create Stack..."
 launch_stack "$elkstackname" "https://s3.amazonaws.com/$S3bucketSource/$S3DownloadPath/cwl-elasticsearch.json" \
   --capabilities CAPABILITY_IAM \
-  --parameters \
-    ParameterKey=HttpProxyHost,ParameterValue="$HttpProxyHost" \
-    ParameterKey=HttpProxyPort,ParameterValue="$HttpProxyPort" \
-    ParameterKey=CreateCrossLogDestination,ParameterValue="$CreateCrossLogDestination" \
-    ParameterKey=ELBAllowedRange1,ParameterValue="$elballowedrange1" \
-    ParameterKey=ELBAllowedRange2,ParameterValue="$elballowedrange2" \
-    ParameterKey=ELBAllowedRange3,ParameterValue="$elballowedrange3" \
-    ParameterKey=ELBAllowedRange4,ParameterValue="$elballowedrange4" \
-    ParameterKey=AMIID,ParameterValue="$AMIID" \
-    ParameterKey=BuildId,ParameterValue="$BuildId" \
-    ParameterKey=CloudWatchConsumerCompiledZip,ParameterValue="$CloudWatchConsumerCompiledZip" \
-    ParameterKey=ClusterSize,ParameterValue="$ClusterSize" \
-    ParameterKey=CrossAccountID,ParameterValue="$CrossAccountID" \
-    ParameterKey=DefaultSecurityGroup,ParameterValue="$DefaultSecurityGroup" \
-    ParameterKey=DNSDomain,ParameterValue="$DNSDomain" \
-    ParameterKey=DNSZoneId,ParameterValue="$DNSZoneId" \
-    ParameterKey=ElasticSearchFilename,ParameterValue="$ElasticSearchFilename" \
-    ParameterKey=ElasticsearchReplicas,ParameterValue="$ElasticsearchReplicas" \
-    ParameterKey=ElasticsearchShards,ParameterValue="$ElasticsearchShards" \
-    ParameterKey=ELBSSLCertificate,ParameterValue="$ELBSSLCertificate" \
-    ParameterKey=ESVolumeSize,ParameterValue="$ESVolumeSize" \
-    ParameterKey=ESVolumeSnapshotId,ParameterValue="$ESVolumeSnapshotId" \
-    ParameterKey=IndexBackupRetentionDays,ParameterValue="$IndexBackupRetentionDays" \
-    ParameterKey=InstanceType,ParameterValue="$InstanceType" \
-    ParameterKey=KeyName,ParameterValue="$KeyName" \
-    ParameterKey=Kibana3Filename,ParameterValue="$Kibana3Filename" \
-    ParameterKey=Kibana4Filename,ParameterValue="$Kibana4Filename" \
-    ParameterKey=KinesisShards,ParameterValue="$KinesisShards" \
-    ParameterKey=LogGroupNameRegex,ParameterValue="$LogGroupNameRegex" \
-    ParameterKey=ManagedServicesTopicARN,ParameterValue="$ManagedServicesTopicARN" \
-    ParameterKey=MonitorStack,ParameterValue="$MonitorStack" \
-    ParameterKey=NATSecurityGroup,ParameterValue="$NATSecurityGroup" \
-    ParameterKey=NginxPassword,ParameterValue="$NginxPassword" \
-    ParameterKey=NginxUsername,ParameterValue="$NginxUsername" \
-    ParameterKey=RetentionDays,ParameterValue="$RetentionDays" \
-    ParameterKey=S3bucketBackup,ParameterValue="$S3bucketBackup" \
-    ParameterKey=S3bucketSource,ParameterValue="$S3bucketSource" \
-    ParameterKey=S3DownloadPath,ParameterValue="$S3DownloadPath" \
-    ParameterKey=S3IndexBackupPath,ParameterValue="$S3IndexBackupPath" \
-    ParameterKey=SnapRetentionDays,ParameterValue="$SnapRetentionDays" \
-    ParameterKey=SubnetA,ParameterValue="$SubnetA" \
-    ParameterKey=SubnetB,ParameterValue="$SubnetB" \
-    ParameterKey=TagApplication,ParameterValue="$TagApplication" \
-    ParameterKey=TagEnvironment,ParameterValue="$TagEnvironment" \
-    ParameterKey=TagEnvironmentNumber,ParameterValue="$TagEnvironmentNumber" \
-    ParameterKey=TagOwner,ParameterValue="$TagOwner" \
-    ParameterKey=TagRole,ParameterValue="$TagRole" \
-    ParameterKey=TagService,ParameterValue="$TagService" \
-    ParameterKey=TagTenant,ParameterValue="$TagTenant" \
-    ParameterKey=VPC,ParameterValue="$VPC" \
-    ParameterKey=LDAPBaseDN,ParameterValue="$LDAPBaseDN" \
-    ParameterKey=LDAPBindPass,ParameterValue="$LDAPBindPass" \
-    ParameterKey=LDAPBindUser,ParameterValue="$LDAPBindUser" \
-    ParameterKey=LDAPGroup,ParameterValue="$LDAPGroup" \
-    ParameterKey=LDAPServer,ParameterValue="$LDAPServer" \
-    ParameterKey=LDAPUsersDN,ParameterValue="$LDAPUsersDN" \
-
+  --parameters "$CFN_PARAMS"

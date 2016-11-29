@@ -845,52 +845,7 @@
                        { "Fn::Join" : ["", ["cp ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/nginx/nginx.conf /etc/nginx/nginx.conf" ]]}
                   ]
                 }
-              },
-              "01_copyElasticsearchTemplates": {
-                "command": { "Fn::Join" : ["", [
-                  "cp -R ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/elasticsearch/* /etc/elasticsearch/"
-                ]]}
-              },
-              "02_updateESConfigForNode": {
-                "command": { "Fn::Join" : ["", [
-                  "echo \"",
-                  "node.name: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null ",
-                  "| grep instanceId ",
-                  "| awk -F\\\" '{print $4}')",
-                  "\" >> /etc/elasticsearch/elasticsearch.yml && ",
-                  "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml &&",
-                  "echo \"",
-                  "node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null ",
-                  "| grep availabilityZone ",
-                  "| awk -F\\\" '{print $4}')",
-                  "\" >> /etc/elasticsearch/elasticsearch.yml"
-                ]]}
-              },
-              "03_installESPlugins": {
-                "command": { "Fn::Join" : ["", [
-                  "/usr/share/elasticsearch/bin/plugin install -b cloud-aws" ,
-                  " && ",
-                  "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf"
-                ]]}
-              },
-              "04_nginxAuthConfig": {
-                "command": { "Fn::Join" : ["", [
-                  "htpasswd -c -b /etc/nginx/.htpasswd ",
-                  { "Ref": "NginxUsername" }, " ",
-                  { "Ref": "NginxPassword" }, "\n"
-                 ]]}
-              },
-              "06_startKibana4": {
-                "command": "/etc/init.d/kibana start",
-                "cwd": "~"
-              },
-              "07_getPipAndCurator": {
-                "command": "pip install elasticsearch-curator"
-              },
-              "08_CWLStateDir" : {
-                "command" : "mkdir -p /var/awslogs/state"
-              }
-            },
+              }            },
 
             "files": {
               "/etc/elasticsearch/elasticsearch.yml" : {
@@ -1167,6 +1122,26 @@
           "# Config\n",
           "cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ElasticsearchServer ",
           "    --region ", { "Ref" : "AWS::Region" }, " -v\n",
+
+          "echo copyElasticsearchTemplates\n",
+          "cp -R ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/elasticsearch/* /etc/elasticsearch/\n",
+
+          "echo updateESConfigForNode\n",
+          "echo \"node.name: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep instanceId | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
+          "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml\n",
+          "echo \" node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep availabilityZone | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
+
+          "echo installESPlugins\n",
+          "/usr/share/elasticsearch/bin/plugin install -b cloud-aws\n",
+          "/usr/share/elasticsearch/bin/plugin install lmenezes/elasticsearch-kopf\n",
+
+          "echo startKibana4\n",
+          "systemctl start kibana && systemctl enable kibana\n",
+
+          "echo getPipAndCurator\n",
+          "pip install elasticsearch-curator\n",
+
+          "mkdir -p /var/awslogs/state",
 
           "chown -R elasticsearch:elasticsearch /etc/elasticsearch/templates\n",
           "service elasticsearch restart\n",

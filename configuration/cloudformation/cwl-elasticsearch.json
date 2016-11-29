@@ -1099,7 +1099,7 @@
           "echo updateESConfigForNode\n",
           "echo \"node.name: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep instanceId | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
           "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml\n",
-          "echo \" node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep availabilityZone | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
+          "echo \"node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep availabilityZone | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
 
           {"Fn::If": ["LDAPAuth", "export NGINX_LDAP=1\n", ""]},
           "export DNSDomain='", {"Ref": "DNSDomain"}, "'\n",

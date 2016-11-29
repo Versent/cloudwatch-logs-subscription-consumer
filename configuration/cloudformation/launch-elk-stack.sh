@@ -71,7 +71,7 @@ CFN_PARAMS="$( cat <<EOF_PARAMS
     { "ParameterKey": "AMIID", "ParameterValue": "$AMIID" },
     { "ParameterKey": "BuildId", "ParameterValue": "$BuildId" },
     { "ParameterKey": "CloudWatchConsumerCompiledZip", "ParameterValue": "$CloudWatchConsumerCompiledZip" },
-    { "ParameterKey": "ClusterSize", "ParameterValue": "$ClusterSize" },
+    { "ParameterKey": "ClusterSize", "ParameterValue": "3" },
     { "ParameterKey": "CrossAccountID", "ParameterValue": "$CrossAccountID" },
     { "ParameterKey": "DefaultSecurityGroup", "ParameterValue": "$DefaultSecurityGroup" },
     { "ParameterKey": "DNSDomain", "ParameterValue": "$DNSDomain" },

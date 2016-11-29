@@ -1103,9 +1103,22 @@
           "cp -R ./", { "Ref" :"CloudWatchConsumerCompiledZip"} ,"/configuration/elasticsearch/* /etc/elasticsearch/\n",
 
           "echo updateESConfigForNode\n",
-          "echo \"node.name: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep instanceId | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
-          "echo 'network.host: 0.0.0.0' >> /etc/elasticsearch/elasticsearch.yml\n",
-          "echo \"node.rack: $(curl -silent http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | grep availabilityZone | awk -F\\\" '{print $4}') \" >> /etc/elasticsearch/elasticsearch.yml\n",
+          "instance_id=\"$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document |  awk -F'\"' '/instanceId/{print $4}')\"\n",
+          "az=\"$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document |  awk -F'\"' '/availabilityZone/{print $4}')\"\n",
+
+          "cat <<EOF >> /etc/elasticsearch.yml\n",
+          "node.name: $instance_id\n",
+          "network.host: 0.0.0.0\n",
+          "node.rack: $az\n",
+
+          "cluster.routing.allocation.node_concurrent_recoveries: 15\n",
+          "threadpool:\n",
+          "  bulk: {queue_size: 500, size: 4}\n",
+          "  index: {size: 4}\n",
+          "  management: {size: 4}\n",
+          "indices.recovery.concurrent_streams: 3\n",
+          "indices.recovery.max_bytes_per_sec: '40mb'\n",
+          "EOF\n",
 
           {"Fn::If": ["LDAPAuth", "export NGINX_LDAP=1\n", ""]},
           "export DNSDomain='", {"Ref": "DNSDomain"}, "'\n",
